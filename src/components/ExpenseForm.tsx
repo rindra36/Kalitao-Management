@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { CalendarIcon, PlusCircle } from "lucide-react"
 import { format } from "date-fns"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -45,40 +45,53 @@ const formSchema = z.object({
 type ExpenseFormValues = z.infer<typeof formSchema>
 
 interface ExpenseFormProps {
-  addExpense: (expense: Omit<Expense, "id" | "amountInFmg">) => void
+  addExpense: (expense: Omit<Expense, "id" | "amountInFmg">) => Promise<void>
   uniqueLabels: string[]
 }
 
 export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: '' as any, // Initialize as empty string to avoid uncontrolled input warning
+      amount: '' as any,
       currency: "FMG",
       label: "",
-      date: undefined, // Default to undefined to avoid hydration mismatch
+      date: new Date(),
     },
   })
   
-  // Set date on client-side to avoid hydration mismatch
   useEffect(() => {
-    if (!form.getValues("date")) {
-      form.setValue("date", new Date());
-    }
-  }, [form]);
+    form.setValue("date", new Date());
+  }, []);
 
   const labelOptions = uniqueLabels.map(label => ({ value: label, label }));
 
-  function onSubmit(data: ExpenseFormValues) {
-    addExpense(data)
-    toast({
-      title: "Expense Added",
-      description: `${data.label} expense has been logged successfully.`,
-    })
-    form.reset()
-    form.setValue("date", new Date())
-    form.setValue("amount", '' as any)
+  async function onSubmit(data: ExpenseFormValues) {
+    setIsSubmitting(true);
+    try {
+      await addExpense(data)
+      toast({
+        title: "Expense Added",
+        description: `${data.label} expense has been logged successfully.`,
+      })
+      form.reset({
+        amount: '' as any,
+        currency: 'FMG',
+        label: '',
+        date: new Date()
+      })
+    } catch (error) {
+       toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add expense. Please try again.",
+      })
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -175,8 +188,8 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
             </FormItem>
           )}
         />
-        <Button type="submit" className="w-full h-10 md:col-span-2 lg:col-span-1">
-          <PlusCircle className="mr-2 h-4 w-4" /> Add Expense
+        <Button type="submit" className="w-full h-10 md:col-span-2 lg:col-span-1" disabled={isSubmitting}>
+          {isSubmitting ? 'Adding...' : <><PlusCircle className="mr-2 h-4 w-4" /> Add Expense</>}
         </Button>
       </form>
     </Form>

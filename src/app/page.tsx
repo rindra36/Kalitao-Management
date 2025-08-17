@@ -10,45 +10,40 @@ import { CalendarIcon } from "lucide-react"
 import { format, isSameDay } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import { cn } from "@/lib/utils"
-import { formatCurrency } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils"
+import { getExpenses, addExpense as addExpenseToDb } from "@/services/database"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const FMG_TO_ARIARY_RATE = 5;
 
-const getInitialExpenses = (): Expense[] => {
-  const today = new Date();
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  return [
-    { id: "1", amount: 10000, label: "Groceries", date: today, currency: "FMG" },
-    { id: "2", amount: 2500, label: "Coffee", date: today, currency: "FMG" },
-    { id: "3", amount: 5000, label: "Groceries", date: today, currency: "FMG" },
-    { id: "4", amount: 15000, label: "Transport", date: yesterday, currency: "FMG" },
-    { id: "5", amount: 2000 * FMG_TO_ARIARY_RATE, label: "Lunch", date: yesterday, currency: "Ariary" },
-  ];
-};
-
 export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
-    setExpenses(getInitialExpenses());
-    setSelectedDate(new Date());
+    const fetchExpenses = async () => {
+      setIsLoading(true);
+      const dbExpenses = await getExpenses();
+      setExpenses(dbExpenses);
+      setIsLoading(false);
+    };
+
+    fetchExpenses();
   }, []);
 
-  const addExpense = (newExpenseData: Omit<Expense, "id">) => {
+  const addExpense = async (newExpenseData: Omit<Expense, "id">) => {
     const amountInFmg = newExpenseData.currency === 'Ariary'
       ? newExpenseData.amount * FMG_TO_ARIARY_RATE
       : newExpenseData.amount;
 
-    const newExpense: Expense = {
+    const expenseToSave: Omit<Expense, "id"> = {
       ...newExpenseData,
-      id: new Date().toISOString() + Math.random(),
       amount: amountInFmg,
     };
-
-    setExpenses(prevExpenses => [...prevExpenses, newExpense]);
+    
+    const newExpense = await addExpenseToDb(expenseToSave);
+    setExpenses(prevExpenses => [newExpense, ...prevExpenses]);
   };
   
   const uniqueLabels = useMemo(() => {
@@ -107,13 +102,33 @@ export default function Home() {
             </div>
             <div className="text-right bg-card p-3 rounded-lg border w-full sm:w-auto">
                 <p className="text-sm text-muted-foreground">Total for selected day</p>
-                <p className="text-2xl font-bold text-primary">{formatCurrency(totalForDay / FMG_TO_ARIARY_RATE, 'Ariary')}</p>
-                <p className="text-md text-muted-foreground">{formatCurrency(totalForDay, 'FMG')}</p>
+                {isLoading ? (
+                  <Skeleton className="h-8 w-[120px] my-1" />
+                ) : (
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(totalForDay / FMG_TO_ARIARY_RATE, 'Ariary')}</p>
+                )}
+                {isLoading ? (
+                  <Skeleton className="h-5 w-[100px]" />
+                ) : (
+                  <p className="text-md text-muted-foreground">{formatCurrency(totalForDay, 'FMG')}</p>
+                )}
             </div>
         </div>
-
-        {selectedDate && <ExpenseList expenses={expenses} selectedDate={selectedDate} />}
-
+        {isLoading ? (
+          <Card className="mt-6 shadow-lg">
+            <CardHeader>
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="h-4 w-3/4" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </CardContent>
+          </Card>
+        ) : (
+          selectedDate && <ExpenseList expenses={expenses} selectedDate={selectedDate} />
+        )}
       </div>
     </main>
   );
