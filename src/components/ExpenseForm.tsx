@@ -56,14 +56,15 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: '' as any,
+      amount: "" as any,
       currency: "FMG",
       label: "",
-      date: undefined,
+      date: new Date(),
     },
   })
   
   useEffect(() => {
+    // Set date only on client to avoid hydration mismatch
     form.setValue("date", new Date());
   }, [form]);
 
@@ -78,7 +79,7 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
         description: `${data.label} expense has been logged successfully.`,
       })
       form.reset({
-        amount: '' as any,
+        amount: "" as any,
         currency: 'FMG',
         label: '',
         date: new Date()

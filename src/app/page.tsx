@@ -18,12 +18,15 @@ const FMG_TO_ARIARY_RATE = 5;
 
 export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Set initial date only on the client to avoid hydration mismatch
     setSelectedDate(new Date());
+  }, []);
 
+  useEffect(() => {
     const fetchExpenses = async () => {
       setIsLoading(true);
       const dbExpenses = await getExpenses();
