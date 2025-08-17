@@ -39,7 +39,7 @@ const formSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be positive." }),
   currency: z.enum(["FMG", "Ariary"]),
   label: z.string().min(1, { message: "Label is required." }),
-  date: z.date(),
+  date: z.date({ required_error: "A date is required." }),
 })
 
 type ExpenseFormValues = z.infer<typeof formSchema>
@@ -59,13 +59,13 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
       amount: '' as any,
       currency: "FMG",
       label: "",
-      date: new Date(),
+      date: undefined,
     },
   })
   
   useEffect(() => {
     form.setValue("date", new Date());
-  }, []);
+  }, [form]);
 
   const labelOptions = uniqueLabels.map(label => ({ value: label, label }));
 
