@@ -54,7 +54,7 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: undefined,
+      amount: '' as any, // Initialize as empty string to avoid uncontrolled input warning
       currency: "FMG",
       label: "",
       date: undefined, // Default to undefined to avoid hydration mismatch
@@ -78,6 +78,7 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
     })
     form.reset()
     form.setValue("date", new Date())
+    form.setValue("amount", '' as any)
   }
 
   return (
@@ -90,7 +91,7 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
             <FormItem className="lg:col-span-1">
               <FormLabel>Amount</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="5000" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} />
+                <Input type="number" placeholder="5000" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
