@@ -59,7 +59,7 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
       amount: "" as any,
       currency: "FMG",
       label: "",
-      date: new Date(),
+      date: undefined,
     },
   })
   
