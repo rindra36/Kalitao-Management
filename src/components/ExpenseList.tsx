@@ -19,7 +19,7 @@ type AggregatedExpense = {
 }
 
 export function ExpenseList({ expenses, selectedDate }: ExpenseListProps) {
-  const filteredExpenses = expenses.filter(expense => isSameDay(expense.date, selectedDate));
+  const filteredExpenses = expenses.filter(expense => selectedDate && isSameDay(expense.date, selectedDate));
 
   const aggregatedExpenses = filteredExpenses.reduce<Record<string, AggregatedExpense>>((acc, expense) => {
     if (!acc[expense.label]) {

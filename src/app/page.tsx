@@ -30,10 +30,11 @@ const getInitialExpenses = (): Expense[] => {
 
 export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   
   useEffect(() => {
     setExpenses(getInitialExpenses());
+    setSelectedDate(new Date());
   }, []);
 
   const addExpense = (newExpenseData: Omit<Expense, "id">) => {
@@ -56,6 +57,7 @@ export default function Home() {
   }, [expenses]);
   
   const totalForDay = useMemo(() => {
+    if (!selectedDate) return 0;
     return expenses
       .filter(expense => isSameDay(expense.date, selectedDate))
       .reduce((sum, expense) => sum + expense.amount, 0);
@@ -110,7 +112,7 @@ export default function Home() {
             </div>
         </div>
 
-        <ExpenseList expenses={expenses} selectedDate={selectedDate} />
+        {selectedDate && <ExpenseList expenses={expenses} selectedDate={selectedDate} />}
 
       </div>
     </main>

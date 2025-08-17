@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { CalendarIcon, PlusCircle } from "lucide-react"
 import { format } from "date-fns"
+import { useEffect } from "react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -56,9 +57,16 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
       amount: undefined,
       currency: "FMG",
       label: "",
-      date: new Date(),
+      date: undefined, // Default to undefined to avoid hydration mismatch
     },
   })
+  
+  // Set date on client-side to avoid hydration mismatch
+  useEffect(() => {
+    if (!form.getValues("date")) {
+      form.setValue("date", new Date());
+    }
+  }, [form]);
 
   const labelOptions = uniqueLabels.map(label => ({ value: label, label }));
 
