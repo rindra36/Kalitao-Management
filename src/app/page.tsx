@@ -18,10 +18,12 @@ const FMG_TO_ARIARY_RATE = 5;
 
 export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    setSelectedDate(new Date());
+
     const fetchExpenses = async () => {
       setIsLoading(true);
       const dbExpenses = await getExpenses();
