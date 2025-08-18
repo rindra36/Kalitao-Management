@@ -37,7 +37,31 @@ export function Combobox({
   createText = (value) => `Add "${value}"`,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false)
-  const [search, setSearch] = React.useState("")
+  const [search, setSearch] = React.useState(value || "")
+
+  React.useEffect(() => {
+    // When the popover closes, if the search input doesn't match an existing option,
+    // treat it as a new value.
+    if (!open) {
+      const bestMatch = options.find(o => o.label.toLowerCase() === search.toLowerCase())
+      if (search) {
+        onChange(bestMatch?.value || search)
+      }
+    }
+    // Only run on popover close
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  React.useEffect(() => {
+    // Sync search input with external value changes
+    if (value) {
+      const matchingOption = options.find((option) => option.value === value)
+      setSearch(matchingOption?.label || value)
+    } else {
+        setSearch("")
+    }
+  }, [value, options]);
+
 
   const filteredOptions = search
     ? options.filter((option) =>
@@ -47,11 +71,13 @@ export function Combobox({
 
   const handleSelect = (selectedValue: string) => {
     onChange(selectedValue)
-    setSearch("")
+    const label = options.find(o => o.value === selectedValue)?.label || selectedValue;
+    setSearch(label)
     setOpen(false)
   }
-
+  
   const showCreateOption = search && !options.some(o => o.label.toLowerCase() === search.toLowerCase());
+  const displayValue = options.find((option) => option.value === value)?.label || value
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -62,14 +88,14 @@ export function Combobox({
           aria-expanded={open}
           className="w-full justify-between font-normal"
         >
-          {value
-            ? options.find((option) => option.value === value)?.label || value
-            : placeholder}
+          <span className="truncate">
+            {value ? displayValue : placeholder}
+          </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-        <div className="p-2 border-b">
+         <div className="p-2 border-b">
             <Input
               placeholder={searchPlaceholder}
               value={search}
