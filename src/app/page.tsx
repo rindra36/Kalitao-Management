@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { ExpenseForm } from "@/components/ExpenseForm"
 import { ExpenseList } from "@/components/ExpenseList"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,8 +11,9 @@ import { format, isSameDay } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn, formatCurrency } from "@/lib/utils"
-import { getExpenses, addExpense as addExpenseToDb } from "@/services/database"
+import { getExpenses, addExpense as addExpenseToDb, updateExpense as updateExpenseInDb, deleteExpense as deleteExpenseFromDb, updateLabelInExpenses, deleteExpensesByLabel } from "@/services/database"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useToast } from "@/hooks/use-toast"
 
 const FMG_TO_ARIARY_RATE = 5;
 
@@ -20,33 +21,82 @@ export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Set initial date only on the client to avoid hydration mismatch
     setSelectedDate(new Date());
   }, []);
 
-  useEffect(() => {
-    const fetchExpenses = async () => {
-      setIsLoading(true);
-      const dbExpenses = await getExpenses();
-      setExpenses(dbExpenses);
-      setIsLoading(false);
-    };
-
-    fetchExpenses();
+  const fetchExpenses = useCallback(async () => {
+    setIsLoading(true);
+    const dbExpenses = await getExpenses();
+    setExpenses(dbExpenses);
+    setIsLoading(false);
   }, []);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
+
+  const handleExpenseUpdate = (updatedExpense: Expense) => {
+    setExpenses(prev => prev.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+  };
+  
+  const handleExpenseDelete = (deletedExpenseId: string) => {
+    setExpenses(prev => prev.filter(e => e.id !== deletedExpenseId));
+  };
+
+  const handleLabelEdit = async (oldLabel: string, newLabel: string) => {
+    if (!newLabel || oldLabel === newLabel) return;
+    try {
+      await updateLabelInExpenses(oldLabel, newLabel);
+      // Refresh local state to reflect the change across all items
+      await fetchExpenses(); 
+      toast({
+        title: "Label Updated",
+        description: `Label "${oldLabel}" was successfully renamed to "${newLabel}".`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update label.",
+      });
+    }
+  };
+  
+  const handleLabelDelete = async (labelToDelete: string) => {
+    try {
+      await deleteExpensesByLabel(labelToDelete);
+      // Refresh local state
+      await fetchExpenses();
+      toast({
+        title: "Label Deleted",
+        description: `All expenses with the label "${labelToDelete}" have been deleted.`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete expenses for this label.",
+      });
+    }
+  };
+
 
   const addExpense = async (newExpenseData: Omit<Expense, "id">) => {
     const amountInFmg = newExpenseData.currency === 'Ariary'
       ? newExpenseData.amount * FMG_TO_ARIARY_RATE
       : newExpenseData.amount;
-
+  
+    // The amount stored in DB is always FMG.
+    // The original currency is just for reference and conversion.
     const expenseToSave: Omit<Expense, "id"> = {
       ...newExpenseData,
       amount: amountInFmg,
     };
-    
+      
     const newExpense = await addExpenseToDb(expenseToSave);
     setExpenses(prevExpenses => [newExpense, ...prevExpenses]);
   };
@@ -132,7 +182,16 @@ export default function Home() {
             </CardContent>
           </Card>
         ) : (
-          selectedDate && <ExpenseList expenses={expenses} selectedDate={selectedDate} />
+          selectedDate && (
+            <ExpenseList
+              expenses={expenses}
+              selectedDate={selectedDate}
+              onExpenseUpdate={handleExpenseUpdate}
+              onExpenseDelete={handleExpenseDelete}
+              onLabelEdit={handleLabelEdit}
+              onLabelDelete={handleLabelDelete}
+            />
+          )
         )}
       </div>
     </main>
