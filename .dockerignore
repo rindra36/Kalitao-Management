@@ -1,0 +1,48 @@
+# Dockerignore file
+
+# Git files
+.git
+.gitignore
+
+# Docker files
+Dockerfile
+.dockerignore
+
+# Node modules
+node_modules
+
+# Build output
+.next
+out
+
+# Local environment variables
+.env*.local
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Next.js specific
+next-env.d.ts
+
+# Test files
+__tests__
+*.test.js
+*.test.ts
+*.test.jsx
+*.test.tsx
+
+# Bash script
+setup_project.sh
