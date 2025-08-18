@@ -102,43 +102,43 @@ export function ExpenseList({
             {sortedAggregatedExpenses.map((aggExpense) => (
               <AccordionItem value={aggExpense.label} key={aggExpense.label}>
                 <AccordionTrigger className="hover:no-underline group">
-                  <div className="flex justify-between w-full items-center">
-                    <div className="flex items-center gap-2 text-left">
-                      <span className="font-medium text-lg">{aggExpense.label}</span>
-                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingLabel(aggExpense.label);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingLabel(aggExpense.label);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <div className="flex justify-between w-full items-center">
+                        <div className="flex items-center gap-2 text-left">
+                            <span className="font-medium text-lg">{aggExpense.label}</span>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingLabel(aggExpense.label);
+                                }}
+                                >
+                                <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDeletingLabel(aggExpense.label);
+                                }}
+                                >
+                                <Trash2 className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            <p className="font-bold text-primary">
+                                {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                {formatCurrency(aggExpense.totalAmount, "FMG")}
+                            </p>
+                        </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-primary">
-                        {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatCurrency(aggExpense.totalAmount, "FMG")}
-                      </p>
-                    </div>
-                  </div>
                 </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-2 pt-2">
