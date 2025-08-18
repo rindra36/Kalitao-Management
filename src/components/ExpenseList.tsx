@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { isSameDay } from "date-fns";
-import { PiggyBank, ReceiptText, Pencil, Trash2 } from "lucide-react";
+import { PiggyBank, ReceiptText, Pencil, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
@@ -101,45 +101,49 @@ export function ExpenseList({
           <Accordion type="multiple" className="w-full">
             {sortedAggregatedExpenses.map((aggExpense) => (
               <AccordionItem value={aggExpense.label} key={aggExpense.label}>
-                <AccordionTrigger className="hover:no-underline group">
-                    <div className="flex justify-between w-full items-center">
-                        <div className="flex items-center gap-2 text-left">
-                            <span className="font-medium text-lg">{aggExpense.label}</span>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setEditingLabel(aggExpense.label);
-                                }}
-                                >
-                                <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setDeletingLabel(aggExpense.label);
-                                }}
-                                >
-                                <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <p className="font-bold text-primary">
-                                {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                {formatCurrency(aggExpense.totalAmount, "FMG")}
-                            </p>
-                        </div>
-                    </div>
-                </AccordionTrigger>
+                <div className="relative group">
+                  <div className="flex justify-between w-full items-center py-4 px-1">
+                      <div className="flex items-center gap-2 text-left">
+                          <span className="font-medium text-lg">{aggExpense.label}</span>
+                          {/* These buttons are now separate from the trigger */}
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                              <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingLabel(aggExpense.label);
+                              }}
+                              >
+                              <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingLabel(aggExpense.label);
+                              }}
+                              >
+                              <Trash2 className="h-4 w-4" />
+                              </Button>
+                          </div>
+                      </div>
+                      <div className="text-right">
+                          <p className="font-bold text-primary">
+                              {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                              {formatCurrency(aggExpense.totalAmount, "FMG")}
+                          </p>
+                      </div>
+                      <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180 ml-4" />
+                  </div>
+                  {/* The trigger is now an invisible overlay that covers the entire row */}
+                  <AccordionTrigger className="absolute inset-0 z-0 hover:no-underline [&>svg]:hidden"></AccordionTrigger>
+                </div>
                 <AccordionContent>
                   <ul className="space-y-2 pt-2">
                     {aggExpense.transactions
@@ -147,7 +151,7 @@ export function ExpenseList({
                       .map((transaction) => (
                         <li
                           key={transaction.id}
-                          className="flex justify-between items-center p-3 rounded-md bg-secondary/50 group"
+                          className="flex justify-between items-center p-3 rounded-md bg-secondary/50 group/item"
                         >
                           <div className="flex items-center gap-3">
                             <ReceiptText className="h-4 w-4 text-muted-foreground" />
@@ -163,7 +167,7 @@ export function ExpenseList({
                               </p>
                             </div>
                           </div>
-                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                           <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingExpense(transaction)}>
                                <Pencil className="h-4 w-4" />
                              </Button>
