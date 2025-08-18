@@ -73,8 +73,7 @@ export function ExpenseList({ expenses, selectedDate }: ExpenseListProps) {
                              <li key={transaction.id} className="flex justify-between items-center p-3 rounded-md bg-secondary/50">
                                 <div className="flex items-center gap-3">
                                   <ReceiptText className="h-4 w-4 text-muted-foreground"/>
-                                  <span className="font-medium">{transaction.currency === 'Ariary' ? formatCurrency(transaction.amount/5, 'Ariary') : formatCurrency(transaction.amount, 'FMG')}</span>
-                                  <span className="text-xs text-muted-foreground">({transaction.currency} entry)</span>
+                                  <span className="font-medium">{formatCurrency(transaction.amount, 'FMG')}</span>
                                 </div>
                                 <div className="text-right text-sm">
                                     <p className="font-semibold">{formatCurrency(transaction.amount / 5, 'Ariary')}</p>
