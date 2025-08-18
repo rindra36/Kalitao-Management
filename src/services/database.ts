@@ -1,49 +1,37 @@
-import { db } from "@/lib/firebase";
+"use server"
+
+import clientPromise from "@/lib/mongodb";
 import type { Expense } from "@/types";
-import {
-  collection,
-  addDoc,
-  getDocs,
-  Timestamp,
-  query,
-  where,
-  orderBy,
-} from "firebase/firestore";
-import { isSameDay, startOfDay, endOfDay } from "date-fns";
+import { ObjectId } from "mongodb";
 
-// This is our data converter for Firestore
-const expenseConverter = {
-  toFirestore: (expense: Omit<Expense, "id">) => {
-    return {
-      amount: expense.amount,
-      label: expense.label,
-      date: Timestamp.fromDate(expense.date),
-      currency: expense.currency,
-    };
-  },
-  fromFirestore: (snapshot: any, options: any): Expense => {
-    const data = snapshot.data(options);
-    return {
-      id: snapshot.id,
-      amount: data.amount,
-      label: data.label,
-      date: data.date.toDate(),
-      currency: data.currency,
-    };
-  },
-};
-
-const expensesCollection = collection(db, "expenses").withConverter(expenseConverter);
+// Helper function to connect to the database and get the expenses collection
+async function getExpensesCollection() {
+  const client = await clientPromise;
+  // Make sure to set MONGODB_DB in your .env.local file
+  const db = client.db(process.env.MONGODB_DB); 
+  return db.collection("expenses");
+}
 
 /**
- * Fetches all expenses from the database.
+ * Fetches all expenses from the database, sorted by date.
  */
 export async function getExpenses(): Promise<Expense[]> {
   try {
-    const querySnapshot = await getDocs(
-      query(expensesCollection, orderBy("date", "desc"))
-    );
-    return querySnapshot.docs.map((doc) => doc.data());
+    const expensesCollection = await getExpensesCollection();
+    const expensesFromDb = await expensesCollection
+      .find({})
+      .sort({ date: -1 }) // Sort by date descending
+      .toArray();
+
+    // Convert MongoDB documents to plain objects for client-side usage
+    return expensesFromDb.map((expense) => {
+      const { _id, ...rest } = expense;
+      return {
+        ...rest,
+        id: _id.toString(),
+        date: new Date(expense.date), // Ensure date is a Date object
+      };
+    });
   } catch (error) {
     console.error("Error fetching expenses:", error);
     return [];
@@ -52,13 +40,26 @@ export async function getExpenses(): Promise<Expense[]> {
 
 /**
  * Adds a new expense to the database.
- * The expense object should not include an 'id'.
  */
 export async function addExpense(expenseData: Omit<Expense, "id">): Promise<Expense> {
   try {
-    const docRef = await addDoc(expensesCollection, expenseData);
+    const expensesCollection = await getExpensesCollection();
+    
+    // Create a new document, ensuring the date is a proper Date object
+    const documentToInsert = {
+      ...expenseData,
+      date: new Date(expenseData.date),
+    };
+
+    const result = await expensesCollection.insertOne(documentToInsert);
+
+    if (!result.insertedId) {
+        throw new Error("Failed to insert expense.");
+    }
+    
+    // Return a plain object that is safe to pass to the client
     return {
-      id: docRef.id,
+      id: result.insertedId.toString(),
       ...expenseData,
     };
   } catch (error) {
