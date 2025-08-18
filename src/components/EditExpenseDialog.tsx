@@ -23,7 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import type { Expense } from "@/types";
-import { updateExpense } from "@/services/database";
+import { updateExpense as updateExpenseInDb } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
@@ -48,25 +48,37 @@ export function EditExpenseDialog({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // The amount displayed and edited should be in the currency it was entered in.
+  // The conversion to FMG for storage is an implementation detail.
+  const displayAmount =
+    expense.currency === "Ariary" ? expense.amount / 5 : expense.amount;
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      amount: expense.amount,
+      amount: displayAmount,
     },
   });
 
   useEffect(() => {
     if (expense) {
-      form.reset({ amount: expense.amount });
+      const displayAmount =
+        expense.currency === "Ariary" ? expense.amount / 5 : expense.amount;
+      form.reset({ amount: displayAmount });
     }
   }, [expense, form]);
 
   async function onSubmit(data: FormValues) {
     setIsSubmitting(true);
     try {
-      const updatedExpense = await updateExpense(expense.id, {
-        amount: data.amount,
+      // Convert back to FMG if the original entry was Ariary
+      const amountInFmg =
+        expense.currency === "Ariary" ? data.amount * 5 : data.amount;
+
+      const updatedExpense = await updateExpenseInDb(expense.id, {
+        amount: amountInFmg,
       });
+
       onExpenseUpdate(updatedExpense);
       toast({
         title: "Expense Updated",
@@ -90,7 +102,7 @@ export function EditExpenseDialog({
         <DialogHeader>
           <DialogTitle>Edit Expense</DialogTitle>
           <DialogDescription>
-            Update the amount for this expense. The amount is in FMG.
+            Update the amount for this expense. The original currency was {expense.currency}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -100,7 +112,7 @@ export function EditExpenseDialog({
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount (FMG)</FormLabel>
+                  <FormLabel>Amount ({expense.currency})</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>

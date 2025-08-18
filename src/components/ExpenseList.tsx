@@ -101,28 +101,28 @@ export function ExpenseList({
           <Accordion type="multiple" className="w-full">
             {sortedAggregatedExpenses.map((aggExpense) => (
               <AccordionItem value={aggExpense.label} key={aggExpense.label}>
-                <div className="flex items-center group w-full hover:no-underline">
-                    <AccordionTrigger className="flex-1">
-                      <div className="flex justify-between w-full pr-4 items-center">
-                          <span className="font-medium text-lg text-left">{aggExpense.label}</span>
-                          <div className="text-right">
-                            <p className="font-bold text-primary">
-                                {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                                {formatCurrency(aggExpense.totalAmount, "FMG")}
-                            </p>
-                          </div>
+                <div className="flex items-center group w-full">
+                  <AccordionTrigger className="flex-1 hover:no-underline">
+                    <div className="flex justify-between w-full pr-4 items-center">
+                      <span className="font-medium text-lg text-left">{aggExpense.label}</span>
+                      <div className="text-right">
+                        <p className="font-bold text-primary">
+                          {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatCurrency(aggExpense.totalAmount, "FMG")}
+                        </p>
                       </div>
-                    </AccordionTrigger>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pr-2">
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingLabel(aggExpense.label)}>
-                        <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeletingLabel(aggExpense.label)}>
-                        <Trash2 className="h-4 w-4" />
-                        </Button>
                     </div>
+                  </AccordionTrigger>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity pr-2">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingLabel(aggExpense.label)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeletingLabel(aggExpense.label)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <AccordionContent>
                   <ul className="space-y-2 pt-2">
@@ -165,21 +165,23 @@ export function ExpenseList({
         </CardContent>
       </Card>
       
-      {/* Dialogs for editing and deleting */}
       {editingExpense && (
         <EditExpenseDialog
           expense={editingExpense}
           isOpen={!!editingExpense}
           onClose={() => setEditingExpense(null)}
-          onExpenseUpdate={onExpenseUpdate}
+          onExpenseUpdate={(updatedExpense) => {
+            onExpenseUpdate(updatedExpense);
+            setEditingExpense(null);
+          }}
         />
       )}
       {deletingItemId && (
         <DeleteConfirmationDialog
             isOpen={!!deletingItemId}
             onClose={() => setDeletingItemId(null)}
-            onConfirm={() => {
-                onExpenseDelete(deletingItemId);
+            onConfirm={async () => {
+                await onExpenseDelete(deletingItemId);
                 setDeletingItemId(null);
             }}
             title="Delete Expense"
@@ -190,8 +192,8 @@ export function ExpenseList({
         <EditLabelDialog
             isOpen={!!editingLabel}
             onClose={() => setEditingLabel(null)}
-            onConfirm={(newLabel) => {
-                onLabelEdit(editingLabel, newLabel);
+            onConfirm={async (newLabel) => {
+                await onLabelEdit(editingLabel, newLabel);
                 setEditingLabel(null);
             }}
             currentLabel={editingLabel}
@@ -201,8 +203,8 @@ export function ExpenseList({
         <DeleteConfirmationDialog
             isOpen={!!deletingLabel}
             onClose={() => setDeletingLabel(null)}
-            onConfirm={() => {
-                onLabelDelete(deletingLabel);
+            onConfirm={async () => {
+                await onLabelDelete(deletingLabel);
                 setDeletingLabel(null);
             }}
             title={`Delete Label "${deletingLabel}"`}

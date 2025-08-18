@@ -11,7 +11,7 @@ import { format, isSameDay } from "date-fns"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn, formatCurrency } from "@/lib/utils"
-import { getExpenses, addExpense as addExpenseToDb, updateExpense as updateExpenseInDb, deleteExpense as deleteExpenseFromDb, updateLabelInExpenses, deleteExpensesByLabel } from "@/services/database"
+import { getExpenses, addExpense as addExpenseToDb, deleteExpense as deleteExpenseFromDb, updateLabelInExpenses, deleteExpensesByLabel } from "@/services/database"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 
@@ -24,7 +24,6 @@ export default function Home() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set initial date only on the client to avoid hydration mismatch
     setSelectedDate(new Date());
   }, []);
 
@@ -41,17 +40,41 @@ export default function Home() {
 
   const handleExpenseUpdate = (updatedExpense: Expense) => {
     setExpenses(prev => prev.map(e => e.id === updatedExpense.id ? updatedExpense : e));
+    toast({
+      title: "Expense Updated",
+      description: "The expense has been successfully updated.",
+    });
   };
   
-  const handleExpenseDelete = (deletedExpenseId: string) => {
-    setExpenses(prev => prev.filter(e => e.id !== deletedExpenseId));
+  const handleExpenseDelete = async (deletedExpenseId: string) => {
+    try {
+      const success = await deleteExpenseFromDb(deletedExpenseId);
+      if (success) {
+        setExpenses(prev => prev.filter(e => e.id !== deletedExpenseId));
+        toast({
+          title: "Expense Deleted",
+          description: "The expense has been removed.",
+        });
+      } else {
+         toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to delete expense. It may have already been removed.",
+        });
+      }
+    } catch (error) {
+       toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while deleting the expense.",
+      });
+    }
   };
 
   const handleLabelEdit = async (oldLabel: string, newLabel: string) => {
     if (!newLabel || oldLabel === newLabel) return;
     try {
       await updateLabelInExpenses(oldLabel, newLabel);
-      // Refresh local state to reflect the change across all items
       await fetchExpenses(); 
       toast({
         title: "Label Updated",
@@ -69,7 +92,6 @@ export default function Home() {
   const handleLabelDelete = async (labelToDelete: string) => {
     try {
       await deleteExpensesByLabel(labelToDelete);
-      // Refresh local state
       await fetchExpenses();
       toast({
         title: "Label Deleted",
@@ -90,15 +112,13 @@ export default function Home() {
       ? newExpenseData.amount * FMG_TO_ARIARY_RATE
       : newExpenseData.amount;
   
-    // The amount stored in DB is always FMG.
-    // The original currency is just for reference and conversion.
     const expenseToSave: Omit<Expense, "id"> = {
       ...newExpenseData,
       amount: amountInFmg,
     };
       
     const newExpense = await addExpenseToDb(expenseToSave);
-    setExpenses(prevExpenses => [newExpense, ...prevExpenses]);
+    setExpenses(prevExpenses => [newExpense, ...prevExpenses].sort((a, b) => b.date.getTime() - a.date.getTime()));
   };
   
   const uniqueLabels = useMemo(() => {
