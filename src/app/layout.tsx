@@ -3,8 +3,8 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Clarté Monétaire',
-  description: 'Suivez vos dépenses avec clarté entre l\'Ariary et le FMG.',
+  title: 'Kali...tao Management',
+  description: 'Gestion des dépenses de Kali...tao',
 };
 
 export default function RootLayout({

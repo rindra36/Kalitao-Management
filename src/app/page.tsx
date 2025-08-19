@@ -151,8 +151,8 @@ export default function Home() {
     <main className="container mx-auto p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary tracking-tight">Clarté Monétaire</h1>
-          <p className="text-muted-foreground mt-2">Suivez vos dépenses avec clarté entre l'Ariary et le FMG.</p>
+          <h1 className="text-4xl font-bold text-primary tracking-tight">Kali...tao Management</h1>
+          <p className="text-muted-foreground mt-2">Gestion des dépenses de Kali...tao</p>
         </header>
 
         <Card className="mb-8 shadow-lg">
