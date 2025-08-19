@@ -19,10 +19,12 @@ import { isAfter, format as formatDate, startOfDay } from "date-fns";
 import { fr } from 'date-fns/locale';
 import { PiggyBank, ReceiptText, Pencil, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
 import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
 import { EditLabelDialog } from "./EditLabelDialog";
+
+type AccordionState = 'all-open' | 'all-closed' | 'default';
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -31,6 +33,9 @@ interface ExpenseListProps {
   onLabelEdit: (oldLabel: string, newLabel: string) => Promise<void>;
   onLabelDelete: (label: string) => Promise<void>;
   uniqueLabels: string[];
+  searchQuery: string;
+  accordionState: AccordionState;
+  onAccordionStateChange: (state: AccordionState) => void;
 }
 
 type AggregatedExpense = {
@@ -46,7 +51,7 @@ type DailyExpense = {
 };
 
 const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updatedAt: Date }) => {
-  const wasUpdated = updatedAt && isAfter(updatedAt, createdAt);
+  const wasUpdated = updatedAt && createdAt && isAfter(updatedAt, createdAt) && (updatedAt.getTime() - createdAt.getTime() > 1000);
   
   return (
     <div className="text-xs text-muted-foreground text-right" title={wasUpdated ? `Modifié: ${formatDate(updatedAt, "PPpp", { locale: fr })}`: `Créé: ${formatDate(createdAt, "PPpp", { locale: fr })}`}>
@@ -62,6 +67,7 @@ const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updat
   );
 };
 
+
 export function ExpenseList({
   expenses,
   onExpenseUpdate,
@@ -69,11 +75,15 @@ export function ExpenseList({
   onLabelEdit,
   onLabelDelete,
   uniqueLabels,
+  searchQuery,
+  accordionState,
+  onAccordionStateChange,
 }: ExpenseListProps) {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [deletingLabel, setDeletingLabel] = useState<string | null>(null);
+  const [openAccordions, setOpenAccordions] = useState<string[]>([]);
 
  const dailyExpenses = useMemo(() => {
     const groupedByDay = expenses.reduce<Record<string, DailyExpense>>((acc, expense) => {
@@ -100,7 +110,44 @@ export function ExpenseList({
     return Object.values(groupedByDay).sort((a, b) => b.date.getTime() - a.date.getTime());
   }, [expenses]);
 
+  const filteredDailyExpenses = useMemo(() => {
+    if (!searchQuery) return dailyExpenses;
+    
+    return dailyExpenses.map(day => {
+      const filteredLabels = Object.values(day.expensesByLabel).filter(agg => 
+        agg.label.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      if (filteredLabels.length === 0) return null;
 
+      const newExpensesByLabel: Record<string, AggregatedExpense> = {};
+      filteredLabels.forEach(fl => {
+        newExpensesByLabel[fl.label] = fl;
+      });
+
+      return { ...day, expensesByLabel: newExpensesByLabel };
+    }).filter(Boolean) as DailyExpense[];
+
+  }, [dailyExpenses, searchQuery]);
+
+  useEffect(() => {
+    const allLabels = filteredDailyExpenses.flatMap(day => 
+      Object.keys(day.expensesByLabel).map(label => `${day.date.toISOString()}-${label}`)
+    );
+
+    if (accordionState === 'all-open') {
+        setOpenAccordions(allLabels);
+    } else if (accordionState === 'all-closed') {
+        setOpenAccordions([]);
+    } else if (searchQuery) {
+        // Automatically open accordions that match the search query
+        setOpenAccordions(allLabels);
+    }
+    // Reset the accordion state prop so it only acts as a trigger
+    if (accordionState !== 'default') {
+      onAccordionStateChange('default');
+    }
+  }, [accordionState, onAccordionStateChange, searchQuery, filteredDailyExpenses]);
+  
   if (expenses.length === 0) {
     return (
       <Card className="mt-6 border-dashed border-2 shadow-none">
@@ -115,10 +162,25 @@ export function ExpenseList({
     );
   }
 
+  if(filteredDailyExpenses.length === 0) {
+     return (
+      <Card className="mt-6 border-dashed border-2 shadow-none">
+        <CardContent className="pt-6 text-center text-muted-foreground flex flex-col items-center justify-center h-48">
+          <Search className="mx-auto h-12 w-12 mb-4" />
+          <p className="font-semibold">Aucun résultat</p>
+          <p className="text-sm">
+           Aucune étiquette ne correspond à votre recherche.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+
   return (
     <>
     <div className="space-y-6">
-      {dailyExpenses.map(day => {
+      {filteredDailyExpenses.map(day => {
         const sortedAggregatedExpenses = Object.values(day.expensesByLabel).sort(
             (a, b) => b.totalAmount - a.totalAmount
         );
@@ -135,11 +197,16 @@ export function ExpenseList({
                     </div>
                 </CardHeader>
                 <CardContent>
-                <Accordion type="multiple" className="w-full">
+                <Accordion 
+                  type="multiple" 
+                  className="w-full"
+                  value={openAccordions}
+                  onValueChange={setOpenAccordions}
+                >
                     {sortedAggregatedExpenses.map((aggExpense) => (
-                    <AccordionItem value={aggExpense.label} key={aggExpense.label}>
+                    <AccordionItem value={`${day.date.toISOString()}-${aggExpense.label}`} key={aggExpense.label}>
                         <AccordionTrigger className="hover:no-underline">
-                           <div className="flex justify-between w-full items-center">
+                           <div className="flex justify-between w-full pr-4 items-center">
                                 <div className="flex items-center gap-2 group/header">
                                     <span className="font-medium text-lg text-left">{aggExpense.label}</span>
                                     <div className="flex items-center opacity-0 group-hover/header:opacity-100 transition-opacity">
@@ -167,15 +234,13 @@ export function ExpenseList({
                                         </Button>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="text-right">
-                                        <p className="font-bold text-primary">
-                                            {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {formatCurrency(aggExpense.totalAmount, "FMG")}
-                                        </p>
-                                    </div>
+                                <div className="text-right">
+                                    <p className="font-bold text-primary">
+                                        {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {formatCurrency(aggExpense.totalAmount, "FMG")}
+                                    </p>
                                 </div>
                            </div>
                         </AccordionTrigger>
@@ -283,3 +348,5 @@ export function ExpenseList({
     </>
   );
 }
+
+    

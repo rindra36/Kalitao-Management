@@ -6,7 +6,7 @@ import { ExpenseList } from "@/components/ExpenseList"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Expense } from "@/types"
 import { Button } from "@/components/ui/button"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, Search, ChevronsDown, ChevronsUp } from "lucide-react"
 import { format, startOfDay } from "date-fns"
 import { fr } from 'date-fns/locale';
 import { DateRange } from "react-day-picker"
@@ -16,13 +16,18 @@ import { cn, formatCurrency } from "@/lib/utils"
 import { getExpenses, addExpense as addExpenseToDb, deleteExpense as deleteExpenseFromDb, updateLabelInExpenses, deleteExpensesByLabel, updateExpense } from "@/services/database"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
+import { Input } from "@/components/ui/input"
 
 const FMG_TO_ARIARY_RATE = 5;
+
+type AccordionState = 'all-open' | 'all-closed' | 'default';
 
 export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [accordionState, setAccordionState] = useState<AccordionState>('default');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -215,6 +220,31 @@ export default function Home() {
                 )}
             </div>
         </div>
+        
+        {/* Search and Controls */}
+        <Card className="mb-6 p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+              <div className="relative flex-grow">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                      type="text"
+                      placeholder="Rechercher une étiquette..."
+                      className="pl-10"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+              </div>
+              <div className="flex items-center gap-2">
+                  <Button variant="outline" onClick={() => setAccordionState('all-open')}>
+                      <ChevronsDown className="mr-2 h-4 w-4" /> Tout ouvrir
+                  </Button>
+                  <Button variant="outline" onClick={() => setAccordionState('all-closed')}>
+                      <ChevronsUp className="mr-2 h-4 w-4" /> Tout fermer
+                  </Button>
+              </div>
+          </div>
+        </Card>
+
         {isLoading ? (
           <Card className="mt-6 shadow-lg">
             <CardHeader>
@@ -236,6 +266,9 @@ export default function Home() {
               onLabelEdit={handleLabelEdit}
               onLabelDelete={handleLabelDelete}
               uniqueLabels={uniqueLabels}
+              searchQuery={searchQuery}
+              accordionState={accordionState}
+              onAccordionStateChange={setAccordionState}
             />
           )
         )}
@@ -243,3 +276,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
