@@ -102,48 +102,53 @@ export function ExpenseList({
             {sortedAggregatedExpenses.map((aggExpense) => (
               <AccordionItem value={aggExpense.label} key={aggExpense.label}>
                 <div className="relative group">
-                  <div className="flex justify-between w-full items-center py-4 px-1">
+                  <AccordionTrigger asChild>
+                    <div className="flex justify-between items-center w-full py-4 px-1 cursor-pointer hover:underline">
+                      {/* Left Side */}
                       <div className="flex items-center gap-2 text-left">
-                          <span className="font-medium text-lg">{aggExpense.label}</span>
-                          {/* These buttons are now separate from the trigger */}
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                              <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingLabel(aggExpense.label);
-                              }}
-                              >
-                              <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeletingLabel(aggExpense.label);
-                              }}
-                              >
-                              <Trash2 className="h-4 w-4" />
-                              </Button>
-                          </div>
+                        <span className="font-medium text-lg">{aggExpense.label}</span>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingLabel(aggExpense.label);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDeletingLabel(aggExpense.label);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="text-right">
+
+                      {/* Right Side */}
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
                           <p className="font-bold text-primary">
-                              {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
+                            {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                              {formatCurrency(aggExpense.totalAmount, "FMG")}
+                            {formatCurrency(aggExpense.totalAmount, "FMG")}
                           </p>
+                        </div>
+                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
                       </div>
-                      <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180 ml-4" />
-                  </div>
-                  {/* The trigger is now an invisible overlay that covers the entire row */}
-                  <AccordionTrigger className="absolute inset-0 z-0 hover:no-underline [&>svg]:hidden"></AccordionTrigger>
+                    </div>
+                  </AccordionTrigger>
                 </div>
+
                 <AccordionContent>
                   <ul className="space-y-2 pt-2">
                     {aggExpense.transactions
