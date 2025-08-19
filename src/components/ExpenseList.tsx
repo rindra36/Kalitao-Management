@@ -130,13 +130,15 @@ export function ExpenseList({
                         </Button>
                       </div>
                     </div>
-                    <div className="text-right">
-                        <p className="font-bold text-primary">
-                        {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                        {formatCurrency(aggExpense.totalAmount, "FMG")}
-                        </p>
+                    <div className="flex items-center gap-4">
+                        <div className="text-right">
+                            <p className="font-bold text-primary">
+                            {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                            {formatCurrency(aggExpense.totalAmount, "FMG")}
+                            </p>
+                        </div>
                     </div>
                   </div>
                 </AccordionTrigger>
