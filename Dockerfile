@@ -48,7 +48,7 @@ ENV NODE_ENV=production
 EXPOSE 3000
 
 # Change ownership of the app directory
-RUN chown -R nextjs:nodejs /app
+# RUN chown -R nextjs:nodejs /app
 USER nextjs
 
 # The command to start the app. 
