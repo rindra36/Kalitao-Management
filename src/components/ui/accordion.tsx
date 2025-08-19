@@ -55,4 +55,6 @@ const AccordionContent = React.forwardRef<
 
 AccordionContent.displayName = AccordionPrimitive.Content.displayName
 
-export { Accordion, AccordionItem, AccordionTrigger, AccordionContent }
+const AccordionContext = (AccordionPrimitive as any).AccordionContext
+
+export { Accordion, AccordionItem, AccordionTrigger, AccordionContent, AccordionContext }
