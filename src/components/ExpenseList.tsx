@@ -5,7 +5,7 @@ import {
   Accordion,
   AccordionContent,
   AccordionItem,
-  AccordionContext,
+  AccordionTrigger,
 } from "@/components/ui/accordion";
 import {
   Card,
@@ -18,11 +18,10 @@ import { formatCurrency } from "@/lib/utils";
 import { isSameDay } from "date-fns";
 import { PiggyBank, ReceiptText, Pencil, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "./ui/button";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
 import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
 import { EditLabelDialog } from "./EditLabelDialog";
-import { cn } from "@/lib/utils";
 
 interface ExpenseListProps {
   expenses: Expense[];
@@ -39,25 +38,6 @@ type AggregatedExpense = {
   transactions: Expense[];
 };
 
-// Custom Accordion Trigger to allow nesting buttons
-const CustomAccordionTrigger = ({ children, value }: { children: React.ReactNode, value: string }) => {
-  const { onToggle, value: contextValue } = useContext(AccordionContext);
-  const isOpen = Array.isArray(contextValue) ? contextValue.includes(value) : contextValue === value;
-
-  return (
-    <div className="flex w-full items-center justify-between" onClick={() => onToggle(value)}>
-      {children}
-      <ChevronDown
-          className={cn(
-            "h-4 w-4 shrink-0 transition-transform duration-200",
-            { "rotate-180": isOpen }
-          )}
-        />
-    </div>
-  );
-};
-
-
 export function ExpenseList({
   expenses,
   selectedDate,
@@ -70,7 +50,6 @@ export function ExpenseList({
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [deletingLabel, setDeletingLabel] = useState<string | null>(null);
-  const [openItems, setOpenItems] = useState<string[]>([]);
 
   const filteredExpenses = expenses.filter(
     (expense) => selectedDate && isSameDay(expense.date, selectedDate)
@@ -119,50 +98,50 @@ export function ExpenseList({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Accordion type="multiple" className="w-full" value={openItems} onValueChange={setOpenItems}>
+          <Accordion type="multiple" className="w-full">
             {sortedAggregatedExpenses.map((aggExpense) => (
               <AccordionItem value={aggExpense.label} key={aggExpense.label}>
-                 <div className="flex w-full items-center justify-between py-4 font-medium cursor-pointer group/header">
-                  <CustomAccordionTrigger value={aggExpense.label}>
-                    <div className="flex items-center gap-2 text-left">
-                        <span className="font-medium text-lg">{aggExpense.label}</span>
-                        <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
-                            <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingLabel(aggExpense.label);
-                            }}
-                            >
-                            <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setDeletingLabel(aggExpense.label);
-                            }}
-                            >
-                            <Trash2 className="h-4 w-4" />
-                            </Button>
+                <AccordionTrigger>
+                    <div className="flex w-full items-center justify-between group/header">
+                      <div className="flex items-center gap-2 text-left">
+                          <span className="font-medium text-lg">{aggExpense.label}</span>
+                          <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
+                              <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingLabel(aggExpense.label);
+                              }}
+                              >
+                              <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeletingLabel(aggExpense.label);
+                              }}
+                              >
+                              <Trash2 className="h-4 w-4" />
+                              </Button>
+                          </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="font-bold text-primary">
+                              {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {formatCurrency(aggExpense.totalAmount, "FMG")}
+                            </p>
+                          </div>
                         </div>
                     </div>
-                     <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="font-bold text-primary">
-                            {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {formatCurrency(aggExpense.totalAmount, "FMG")}
-                          </p>
-                        </div>
-                      </div>
-                  </CustomAccordionTrigger>
-                 </div>
+                </AccordionTrigger>
                 <AccordionContent>
                   <ul className="space-y-2 pt-2">
                     {aggExpense.transactions
