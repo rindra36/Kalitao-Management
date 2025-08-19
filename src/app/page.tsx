@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import type { Expense } from "@/types"
 import { Button } from "@/components/ui/button"
 import { CalendarIcon } from "lucide-react"
-import { format, isSameDay } from "date-fns"
+import { format, isSameDay, startOfDay } from "date-fns"
+import { DateRange } from "react-day-picker"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn, formatCurrency } from "@/lib/utils"
@@ -19,12 +20,14 @@ const FMG_TO_ARIARY_RATE = 5;
 
 export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    setSelectedDate(new Date());
+    // Set initial date range to today on the client to avoid hydration mismatch
+    const today = new Date();
+    setDateRange({ from: startOfDay(today), to: today });
   }, []);
 
   const fetchExpenses = useCallback(async () => {
@@ -126,12 +129,21 @@ export default function Home() {
     return Array.from(labels);
   }, [expenses]);
   
-  const totalForDay = useMemo(() => {
-    if (!selectedDate) return 0;
-    return expenses
-      .filter(expense => isSameDay(expense.date, selectedDate))
-      .reduce((sum, expense) => sum + expense.amount, 0);
-  }, [expenses, selectedDate]);
+  const filteredExpenses = useMemo(() => {
+    if (!dateRange?.from) return [];
+    const fromDate = startOfDay(dateRange.from);
+    // If no 'to' date, use the 'from' date for a single day range
+    const toDate = dateRange.to ? startOfDay(dateRange.to) : fromDate;
+
+    return expenses.filter(expense => {
+        const expenseDate = startOfDay(expense.date);
+        return expenseDate >= fromDate && expenseDate <= toDate;
+    });
+  }, [expenses, dateRange]);
+
+  const totalForRange = useMemo(() => {
+    return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  }, [filteredExpenses]);
 
 
   return (
@@ -154,38 +166,54 @@ export default function Home() {
 
         <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
             <div className="flex items-baseline gap-2">
-                <h2 className="text-2xl font-bold">Expenses for</h2>
+                <h2 className="text-2xl font-bold">Expenses from</h2>
                  <Popover>
                     <PopoverTrigger asChild>
-                        <Button
+                      <Button
+                        id="date"
                         variant={"outline"}
-                        className={cn("w-full sm:w-[280px] justify-start text-left font-normal")}
-                        >
+                        className={cn(
+                          "w-full sm:w-[300px] justify-start text-left font-normal"
+                        )}
+                      >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                        </Button>
+                        {dateRange?.from ? (
+                          dateRange.to ? (
+                            <>
+                              {format(dateRange.from, "LLL dd, y")} -{" "}
+                              {format(dateRange.to, "LLL dd, y")}
+                            </>
+                          ) : (
+                            format(dateRange.from, "LLL dd, y")
+                          )
+                        ) : (
+                          <span>Pick a date</span>
+                        )}
+                      </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent className="w-auto p-0" align="start">
                         <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => date && setSelectedDate(date)}
                         initialFocus
+                        mode="range"
+                        defaultMonth={dateRange?.from}
+                        selected={dateRange}
+                        onSelect={setDateRange}
+                        numberOfMonths={2}
                         />
                     </PopoverContent>
                 </Popover>
             </div>
             <div className="text-right bg-card p-3 rounded-lg border w-full sm:w-auto">
-                <p className="text-sm text-muted-foreground">Total for selected day</p>
+                <p className="text-sm text-muted-foreground">Total for range</p>
                 {isLoading ? (
                   <Skeleton className="h-8 w-[120px] my-1" />
                 ) : (
-                  <p className="text-2xl font-bold text-primary">{formatCurrency(totalForDay / FMG_TO_ARIARY_RATE, 'Ariary')}</p>
+                  <p className="text-2xl font-bold text-primary">{formatCurrency(totalForRange / FMG_TO_ARIARY_RATE, 'Ariary')}</p>
                 )}
                 {isLoading ? (
                   <Skeleton className="h-5 w-[100px]" />
                 ) : (
-                  <p className="text-md text-muted-foreground">{formatCurrency(totalForDay, 'FMG')}</p>
+                  <p className="text-md text-muted-foreground">{formatCurrency(totalForRange, 'FMG')}</p>
                 )}
             </div>
         </div>
@@ -202,10 +230,9 @@ export default function Home() {
             </CardContent>
           </Card>
         ) : (
-          selectedDate && (
+          dateRange && (
             <ExpenseList
-              expenses={expenses}
-              selectedDate={selectedDate}
+              expenses={filteredExpenses}
               onExpenseUpdate={handleExpenseUpdate}
               onExpenseDelete={handleExpenseDelete}
               onLabelEdit={handleLabelEdit}

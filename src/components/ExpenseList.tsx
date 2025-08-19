@@ -15,17 +15,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { isSameDay, format as formatDate, isAfter } from "date-fns";
+import { isSameDay, format as formatDate, isAfter, startOfDay } from "date-fns";
 import { PiggyBank, ReceiptText, Pencil, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "./ui/button";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
 import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
 import { EditLabelDialog } from "./EditLabelDialog";
 
 interface ExpenseListProps {
   expenses: Expense[];
-  selectedDate: Date;
   onExpenseUpdate: (expense: Expense) => void;
   onExpenseDelete: (id: string) => void;
   onLabelEdit: (oldLabel: string, newLabel: string) => Promise<void>;
@@ -38,17 +37,23 @@ type AggregatedExpense = {
   transactions: Expense[];
 };
 
+type DailyExpense = {
+    date: Date;
+    total: number; // in FMG
+    expensesByLabel: Record<string, AggregatedExpense>;
+};
+
 const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updatedAt: Date }) => {
   const wasUpdated = updatedAt && isAfter(updatedAt, createdAt);
   
   return (
-    <div className="text-xs text-muted-foreground">
+    <div className="text-xs text-muted-foreground" title={wasUpdated ? `Updated: ${formatDate(updatedAt, "PPpp")}`: `Created: ${formatDate(createdAt, "PPpp")}`}>
       {wasUpdated && (
-        <span title={formatDate(updatedAt, "PPpp")}>
+        <span>
           {formatDate(updatedAt, "MMM d, HH:mm")}{' '}
         </span>
       )}
-      <span title={formatDate(createdAt, "PPpp")}>
+      <span>
         ({formatDate(createdAt, "MMM d, HH:mm")})
       </span>
     </div>
@@ -58,7 +63,6 @@ const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updat
 
 export function ExpenseList({
   expenses,
-  selectedDate,
   onExpenseUpdate,
   onExpenseDelete,
   onLabelEdit,
@@ -69,35 +73,38 @@ export function ExpenseList({
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [deletingLabel, setDeletingLabel] = useState<string | null>(null);
 
-  const filteredExpenses = expenses.filter(
-    (expense) => selectedDate && isSameDay(expense.date, selectedDate)
-  );
+ const dailyExpenses = useMemo(() => {
+    const groupedByDay = expenses.reduce<Record<string, DailyExpense>>((acc, expense) => {
+        const day = startOfDay(expense.date).toISOString();
+        if (!acc[day]) {
+            acc[day] = {
+                date: startOfDay(expense.date),
+                total: 0,
+                expensesByLabel: {},
+            };
+        }
+        acc[day].total += expense.amount;
+        if (!acc[day].expensesByLabel[expense.label]) {
+            acc[day].expensesByLabel[expense.label] = {
+                label: expense.label,
+                totalAmount: 0,
+                transactions: [],
+            };
+        }
+        acc[day].expensesByLabel[expense.label].totalAmount += expense.amount;
+        acc[day].expensesByLabel[expense.label].transactions.push(expense);
+        return acc;
+    }, {});
+    return Object.values(groupedByDay).sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [expenses]);
 
-  const aggregatedExpenses = filteredExpenses.reduce<
-    Record<string, AggregatedExpense>
-  >((acc, expense) => {
-    if (!acc[expense.label]) {
-      acc[expense.label] = {
-        label: expense.label,
-        totalAmount: 0,
-        transactions: [],
-      };
-    }
-    acc[expense.label].totalAmount += expense.amount;
-    acc[expense.label].transactions.push(expense);
-    return acc;
-  }, {});
 
-  const sortedAggregatedExpenses = Object.values(aggregatedExpenses).sort(
-    (a, b) => b.totalAmount - a.totalAmount
-  );
-
-  if (sortedAggregatedExpenses.length === 0) {
+  if (expenses.length === 0) {
     return (
       <Card className="mt-6 border-dashed border-2 shadow-none">
         <CardContent className="pt-6 text-center text-muted-foreground flex flex-col items-center justify-center h-48">
           <PiggyBank className="mx-auto h-12 w-12 mb-4" />
-          <p className="font-semibold">No expenses for this day.</p>
+          <p className="font-semibold">No expenses for this date range.</p>
           <p className="text-sm">
             Add an expense using the form above to see it here.
           </p>
@@ -108,102 +115,115 @@ export function ExpenseList({
 
   return (
     <>
-      <Card className="mt-6 shadow-lg">
-        <CardHeader>
-          <CardTitle>Daily Summary</CardTitle>
-          <CardDescription>
-            Click on a category to see individual transactions.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Accordion type="multiple" className="w-full">
-            {sortedAggregatedExpenses.map((aggExpense) => (
-              <AccordionItem value={aggExpense.label} key={aggExpense.label}>
-                <AccordionTrigger className="hover:no-underline">
-                   <div className="flex justify-between w-full items-center">
-                    <div className="flex items-center gap-2 group/header">
-                      <span className="font-medium text-lg text-left">{aggExpense.label}</span>
-                       <div className="flex items-center opacity-0 group-hover/header:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingLabel(aggExpense.label);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingLabel(aggExpense.label);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+    <div className="space-y-6">
+      {dailyExpenses.map(day => {
+        const sortedAggregatedExpenses = Object.values(day.expensesByLabel).sort(
+            (a, b) => b.totalAmount - a.totalAmount
+        );
+        return (
+            <Card key={day.date.toISOString()} className="shadow-lg">
+                <CardHeader className="flex flex-row justify-between items-center">
+                    <div>
+                        <CardTitle>{formatDate(day.date, "EEEE, PPP")}</CardTitle>
+                        <CardDescription>Daily total for all categories.</CardDescription>
                     </div>
-                     <div className="flex items-center gap-4">
-                        <div className="text-right">
-                            <p className="font-bold text-primary">
-                            {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                            {formatCurrency(aggExpense.totalAmount, "FMG")}
-                            </p>
-                        </div>
+                    <div className="text-right">
+                         <p className="text-lg font-bold text-primary">{formatCurrency(day.total / 5, "Ariary")}</p>
+                         <p className="text-sm text-muted-foreground">{formatCurrency(day.total, "FMG")}</p>
                     </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <ul className="space-y-2 pt-2">
-                    {aggExpense.transactions
-                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                      .map((transaction) => (
-                        <li
-                          key={transaction.id}
-                          className="flex justify-between items-center p-3 rounded-md bg-secondary/50 group/item"
-                        >
-                          <div className="flex items-center gap-3">
-                            <ReceiptText className="h-4 w-4 text-muted-foreground" />
-                            <div className="text-left">
-                              <p className="font-semibold">
-                                {formatCurrency(transaction.amount, "FMG")}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatCurrency(
-                                  transaction.amount / 5,
-                                  "Ariary"
-                                )}
-                              </p>
+                </CardHeader>
+                <CardContent>
+                <Accordion type="multiple" className="w-full">
+                    {sortedAggregatedExpenses.map((aggExpense) => (
+                    <AccordionItem value={aggExpense.label} key={aggExpense.label}>
+                        <AccordionTrigger className="hover:no-underline">
+                        <div className="flex justify-between w-full items-center">
+                            <div className="flex items-center gap-2 group/header">
+                                <span className="font-medium text-lg text-left">{aggExpense.label}</span>
+                                <div className="flex items-center opacity-0 group-hover/header:opacity-100 transition-opacity">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingLabel(aggExpense.label);
+                                        }}
+                                    >
+                                    <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setDeletingLabel(aggExpense.label);
+                                        }}
+                                    >
+                                    <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
-                           <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingExpense(transaction)}>
-                               <Pencil className="h-4 w-4" />
-                             </Button>
-                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeletingItemId(transaction.id)}>
-                                <Trash2 className="h-4 w-4" />
-                             </Button>
-                           </div>
-                          </div>
-                           <TransactionTimestamp 
-                                createdAt={transaction.createdAt} 
-                                updatedAt={transaction.updatedAt} 
-                            />
-                        </li>
-                      ))}
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
-        </CardContent>
-      </Card>
+                            <div className="flex items-center gap-2">
+                                <div className="text-right">
+                                    <p className="font-bold text-primary">
+                                        {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {formatCurrency(aggExpense.totalAmount, "FMG")}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                        <ul className="space-y-2 pt-2">
+                            {aggExpense.transactions
+                            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                            .map((transaction) => (
+                                <li
+                                key={transaction.id}
+                                className="flex justify-between items-center p-3 rounded-md bg-secondary/50 group/item"
+                                >
+                                <div className="flex items-center gap-3">
+                                    <ReceiptText className="h-4 w-4 text-muted-foreground" />
+                                    <div className="text-left">
+                                    <p className="font-semibold">
+                                        {formatCurrency(transaction.amount, "FMG")}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {formatCurrency(
+                                        transaction.amount / 5,
+                                        "Ariary"
+                                        )}
+                                    </p>
+                                    </div>
+                                <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingExpense(transaction)}>
+                                    <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeletingItemId(transaction.id)}>
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                                </div>
+                                <TransactionTimestamp 
+                                        createdAt={transaction.createdAt} 
+                                        updatedAt={transaction.updatedAt} 
+                                    />
+                                </li>
+                            ))}
+                        </ul>
+                        </AccordionContent>
+                    </AccordionItem>
+                    ))}
+                </Accordion>
+                </CardContent>
+            </Card>
+        )
+      })}
+    </div>
       
       {editingExpense && (
         <EditExpenseDialog
