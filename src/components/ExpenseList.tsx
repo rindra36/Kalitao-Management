@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { isSameDay } from "date-fns";
-import { PiggyBank, ReceiptText, Pencil, Trash2, ChevronDown } from "lucide-react";
+import { PiggyBank, ReceiptText, Pencil, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
@@ -102,7 +102,7 @@ export function ExpenseList({
             {sortedAggregatedExpenses.map((aggExpense) => (
               <AccordionItem value={aggExpense.label} key={aggExpense.label}>
                 <AccordionTrigger>
-                    <div className="flex w-full items-center justify-between group/header">
+                  <div className="flex w-full items-center justify-between group/header">
                       <div className="flex items-center gap-2 text-left">
                           <span className="font-medium text-lg">{aggExpense.label}</span>
                           <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
