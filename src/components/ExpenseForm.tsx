@@ -45,7 +45,7 @@ const formSchema = z.object({
 type ExpenseFormValues = z.infer<typeof formSchema>
 
 interface ExpenseFormProps {
-  addExpense: (expense: Omit<Expense, "id" | "amountInFmg">) => Promise<void>
+  addExpense: (expense: Omit<Expense, "id" | "createdAt" | "updatedAt">) => Promise<void>
   uniqueLabels: string[]
 }
 

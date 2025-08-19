@@ -24,6 +24,8 @@ export async function getExpenses(): Promise<Expense[]> {
         ...rest,
         id: _id.toString(),
         date: new Date(expense.date),
+        createdAt: new Date(expense.createdAt),
+        updatedAt: new Date(expense.updatedAt),
       } as Expense;
     });
   } catch (error) {
@@ -32,13 +34,16 @@ export async function getExpenses(): Promise<Expense[]> {
   }
 }
 
-export async function addExpense(expenseData: Omit<Expense, "id">): Promise<Expense> {
+export async function addExpense(expenseData: Omit<Expense, "id" | "createdAt" | "updatedAt">): Promise<Expense> {
   try {
     const expensesCollection = await getExpensesCollection();
     
+    const now = new Date();
     const documentToInsert = {
       ...expenseData,
       date: new Date(expenseData.date),
+      createdAt: now,
+      updatedAt: now,
     };
 
     const result = await expensesCollection.insertOne(documentToInsert);
@@ -51,6 +56,8 @@ export async function addExpense(expenseData: Omit<Expense, "id">): Promise<Expe
       id: result.insertedId.toString(),
       ...expenseData,
       date: documentToInsert.date,
+      createdAt: documentToInsert.createdAt,
+      updatedAt: documentToInsert.updatedAt,
     };
   } catch (error) {
     console.error("Error adding expense:", error);
@@ -58,18 +65,23 @@ export async function addExpense(expenseData: Omit<Expense, "id">): Promise<Expe
   }
 }
 
-export async function updateExpense(id: string, updates: Partial<Omit<Expense, "id">>): Promise<Expense> {
+export async function updateExpense(id: string, updates: Partial<Omit<Expense, "id" | "createdAt">>): Promise<Expense> {
   try {
     const expensesCollection = await getExpensesCollection();
 
+    const updatesWithTimestamp = {
+      ...updates,
+      updatedAt: new Date(),
+    };
+
     // Ensure date updates are handled correctly
     if (updates.date) {
-      updates.date = new Date(updates.date);
+      updatesWithTimestamp.date = new Date(updates.date);
     }
     
     const result = await expensesCollection.findOneAndUpdate(
       { _id: new ObjectId(id) },
-      { $set: updates },
+      { $set: updatesWithTimestamp },
       { returnDocument: "after" }
     );
     
@@ -79,7 +91,13 @@ export async function updateExpense(id: string, updates: Partial<Omit<Expense, "
 
     const { _id, ...updatedDoc } = result;
 
-    return { ...updatedDoc, id: _id.toString(), date: new Date(updatedDoc.date) } as Expense;
+    return { 
+        ...updatedDoc, 
+        id: _id.toString(), 
+        date: new Date(updatedDoc.date),
+        createdAt: new Date(updatedDoc.createdAt),
+        updatedAt: new Date(updatedDoc.updatedAt),
+    } as Expense;
   } catch (error) {
     console.error("Error updating expense:", error);
     throw new Error("Could not update expense.");
@@ -108,7 +126,7 @@ export async function updateLabelInExpenses(oldLabel: string, newLabel: string):
         const expensesCollection = await getExpensesCollection();
         const result = await expensesCollection.updateMany(
             { label: oldLabel },
-            { $set: { label: newLabel } }
+            { $set: { label: newLabel, updatedAt: new Date() } }
         );
         return result.modifiedCount;
     } catch (error) {

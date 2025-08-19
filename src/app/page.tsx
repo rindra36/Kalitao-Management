@@ -107,12 +107,12 @@ export default function Home() {
   };
 
 
-  const addExpense = async (newExpenseData: Omit<Expense, "id">) => {
+  const addExpense = async (newExpenseData: Omit<Expense, "id" | "createdAt" | "updatedAt">) => {
     const amountInFmg = newExpenseData.currency === 'Ariary'
       ? newExpenseData.amount * FMG_TO_ARIARY_RATE
       : newExpenseData.amount;
   
-    const expenseToSave: Omit<Expense, "id"> = {
+    const expenseToSave = {
       ...newExpenseData,
       amount: amountInFmg,
     };

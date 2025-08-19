@@ -4,4 +4,6 @@ export interface Expense {
   label: string;
   date: Date;
   currency: 'FMG' | 'Ariary';
+  createdAt: Date;
+  updatedAt: Date;
 }

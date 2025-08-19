@@ -15,8 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { isSameDay } from "date-fns";
-import { PiggyBank, ReceiptText, Pencil, Trash2 } from "lucide-react";
+import { isSameDay, format as formatDate, isAfter } from "date-fns";
+import { PiggyBank, ReceiptText, Pencil, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
@@ -37,6 +37,24 @@ type AggregatedExpense = {
   totalAmount: number; // in FMG
   transactions: Expense[];
 };
+
+const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updatedAt: Date }) => {
+  const wasUpdated = updatedAt && isAfter(updatedAt, createdAt);
+  
+  return (
+    <div className="text-xs text-muted-foreground">
+      {wasUpdated && (
+        <span title={formatDate(updatedAt, "PPpp")}>
+          {formatDate(updatedAt, "MMM d, HH:mm")}
+        </span>
+      )}
+      <span title={formatDate(createdAt, "PPpp")}>
+        ({formatDate(createdAt, "MMM d, HH:mm")})
+      </span>
+    </div>
+  );
+};
+
 
 export function ExpenseList({
   expenses,
@@ -101,11 +119,11 @@ export function ExpenseList({
           <Accordion type="multiple" className="w-full">
             {sortedAggregatedExpenses.map((aggExpense) => (
               <AccordionItem value={aggExpense.label} key={aggExpense.label}>
-                <AccordionTrigger className="hover:no-underline">
+                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex justify-between w-full items-center">
                     <div className="flex items-center gap-2 group/header">
                       <span className="font-medium text-lg text-left">{aggExpense.label}</span>
-                      <div className="flex items-center opacity-0 group-hover/header:opacity-100 transition-opacity">
+                       <div className="flex items-center opacity-0 group-hover/header:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -130,7 +148,7 @@ export function ExpenseList({
                         </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                     <div className="flex items-center gap-4">
                         <div className="text-right">
                             <p className="font-bold text-primary">
                             {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
@@ -139,6 +157,7 @@ export function ExpenseList({
                             {formatCurrency(aggExpense.totalAmount, "FMG")}
                             </p>
                         </div>
+                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -164,6 +183,10 @@ export function ExpenseList({
                                 )}
                               </p>
                             </div>
+                             <TransactionTimestamp 
+                                createdAt={transaction.createdAt} 
+                                updatedAt={transaction.updatedAt} 
+                            />
                           </div>
                            <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingExpense(transaction)}>
