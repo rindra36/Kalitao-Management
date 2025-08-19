@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import type { Expense } from "@/types"
 import { Button } from "@/components/ui/button"
 import { CalendarIcon } from "lucide-react"
-import { format, isSameDay, startOfDay } from "date-fns"
+import { format, startOfDay } from "date-fns"
+import { fr } from 'date-fns/locale';
 import { DateRange } from "react-day-picker"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
@@ -44,8 +45,8 @@ export default function Home() {
   const handleExpenseUpdate = (updatedExpense: Expense) => {
     setExpenses(prev => prev.map(e => e.id === updatedExpense.id ? updatedExpense : e));
     toast({
-      title: "Expense Updated",
-      description: "The expense has been successfully updated.",
+      title: "Dépense mise à jour",
+      description: "La dépense a été mise à jour avec succès.",
     });
   };
   
@@ -55,21 +56,21 @@ export default function Home() {
       if (success) {
         setExpenses(prev => prev.filter(e => e.id !== deletedExpenseId));
         toast({
-          title: "Expense Deleted",
-          description: "The expense has been removed.",
+          title: "Dépense supprimée",
+          description: "La dépense a été supprimée.",
         });
       } else {
          toast({
           variant: "destructive",
-          title: "Error",
-          description: "Failed to delete expense. It may have already been removed.",
+          title: "Erreur",
+          description: "Impossible de supprimer la dépense. Elle a peut-être déjà été supprimée.",
         });
       }
     } catch (error) {
        toast({
         variant: "destructive",
-        title: "Error",
-        description: "An error occurred while deleting the expense.",
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la suppression de la dépense.",
       });
     }
   };
@@ -80,14 +81,14 @@ export default function Home() {
       await updateLabelInExpenses(oldLabel, newLabel);
       await fetchExpenses(); 
       toast({
-        title: "Label Updated",
-        description: `Label "${oldLabel}" was successfully renamed to "${newLabel}".`,
+        title: "Étiquette mise à jour",
+        description: `L'étiquette "${oldLabel}" a été renommée en "${newLabel}".`,
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to update label.",
+        title: "Erreur",
+        description: "Impossible de mettre à jour l'étiquette.",
       });
     }
   };
@@ -97,14 +98,14 @@ export default function Home() {
       await deleteExpensesByLabel(labelToDelete);
       await fetchExpenses();
       toast({
-        title: "Label Deleted",
-        description: `All expenses with the label "${labelToDelete}" have been deleted.`,
+        title: "Étiquette supprimée",
+        description: `Toutes les dépenses avec l'étiquette "${labelToDelete}" ont été supprimées.`,
       });
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to delete expenses for this label.",
+        title: "Erreur",
+        description: "Impossible de supprimer les dépenses pour cette étiquette.",
       });
     }
   };
@@ -150,14 +151,14 @@ export default function Home() {
     <main className="container mx-auto p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary tracking-tight">Currency Clarity</h1>
-          <p className="text-muted-foreground mt-2">Track your expenses with clarity between Ariary and FMG.</p>
+          <h1 className="text-4xl font-bold text-primary tracking-tight">Clarté Monétaire</h1>
+          <p className="text-muted-foreground mt-2">Suivez vos dépenses avec clarté entre l'Ariary et le FMG.</p>
         </header>
 
         <Card className="mb-8 shadow-lg">
             <CardHeader>
-                <CardTitle>Add New Expense</CardTitle>
-                <CardDescription>Log a new transaction to your expense tracker.</CardDescription>
+                <CardTitle>Ajouter une nouvelle dépense</CardTitle>
+                <CardDescription>Enregistrez une nouvelle transaction dans votre suivi de dépenses.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ExpenseForm addExpense={addExpense} uniqueLabels={uniqueLabels} />
@@ -166,7 +167,7 @@ export default function Home() {
 
         <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
             <div className="flex items-baseline gap-2">
-                <h2 className="text-2xl font-bold">Expenses from</h2>
+                <h2 className="text-2xl font-bold">Dépenses du</h2>
                  <Popover>
                     <PopoverTrigger asChild>
                       <Button
@@ -180,14 +181,14 @@ export default function Home() {
                         {dateRange?.from ? (
                           dateRange.to ? (
                             <>
-                              {format(dateRange.from, "LLL dd, y")} -{" "}
-                              {format(dateRange.to, "LLL dd, y")}
+                              {format(dateRange.from, "d MMM y", { locale: fr })} -{" "}
+                              {format(dateRange.to, "d MMM y", { locale: fr })}
                             </>
                           ) : (
-                            format(dateRange.from, "LLL dd, y")
+                            format(dateRange.from, "d MMM y", { locale: fr })
                           )
                         ) : (
-                          <span>Pick a date</span>
+                          <span>Choisir une date</span>
                         )}
                       </Button>
                     </PopoverTrigger>
@@ -199,12 +200,13 @@ export default function Home() {
                         selected={dateRange}
                         onSelect={setDateRange}
                         numberOfMonths={2}
+                        locale={fr}
                         />
                     </PopoverContent>
                 </Popover>
             </div>
             <div className="text-right bg-card p-3 rounded-lg border w-full sm:w-auto">
-                <p className="text-sm text-muted-foreground">Total for range</p>
+                <p className="text-sm text-muted-foreground">Total pour la période</p>
                 {isLoading ? (
                   <Skeleton className="h-8 w-[120px] my-1" />
                 ) : (

@@ -15,8 +15,9 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { isSameDay, format as formatDate, isAfter, startOfDay } from "date-fns";
-import { PiggyBank, ReceiptText, Pencil, Trash2, ChevronDown } from "lucide-react";
+import { isAfter, format as formatDate, startOfDay } from "date-fns";
+import { fr } from 'date-fns/locale';
+import { PiggyBank, ReceiptText, Pencil, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState, useMemo } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
@@ -47,19 +48,18 @@ const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updat
   const wasUpdated = updatedAt && isAfter(updatedAt, createdAt);
   
   return (
-    <div className="text-xs text-muted-foreground" title={wasUpdated ? `Updated: ${formatDate(updatedAt, "PPpp")}`: `Created: ${formatDate(createdAt, "PPpp")}`}>
+    <div className="text-xs text-muted-foreground" title={wasUpdated ? `Modifié: ${formatDate(updatedAt, "PPpp", { locale: fr })}`: `Créé: ${formatDate(createdAt, "PPpp", { locale: fr })}`}>
       {wasUpdated && (
         <span>
-          {formatDate(updatedAt, "MMM d, HH:mm")}{' '}
+          {formatDate(updatedAt, "d MMM, HH:mm", { locale: fr })}{' '}
         </span>
       )}
       <span>
-        ({formatDate(createdAt, "MMM d, HH:mm")})
+        ({formatDate(createdAt, "d MMM, HH:mm", { locale: fr })})
       </span>
     </div>
   );
 };
-
 
 export function ExpenseList({
   expenses,
@@ -104,9 +104,9 @@ export function ExpenseList({
       <Card className="mt-6 border-dashed border-2 shadow-none">
         <CardContent className="pt-6 text-center text-muted-foreground flex flex-col items-center justify-center h-48">
           <PiggyBank className="mx-auto h-12 w-12 mb-4" />
-          <p className="font-semibold">No expenses for this date range.</p>
+          <p className="font-semibold">Aucune dépense pour cette période.</p>
           <p className="text-sm">
-            Add an expense using the form above to see it here.
+            Ajoutez une dépense en utilisant le formulaire ci-dessus pour la voir ici.
           </p>
         </CardContent>
       </Card>
@@ -124,8 +124,8 @@ export function ExpenseList({
             <Card key={day.date.toISOString()} className="shadow-lg">
                 <CardHeader className="flex flex-row justify-between items-center">
                     <div>
-                        <CardTitle>{formatDate(day.date, "EEEE, PPP")}</CardTitle>
-                        <CardDescription>Daily total for all categories.</CardDescription>
+                        <CardTitle>{formatDate(day.date, "EEEE, d MMMM yyyy", { locale: fr })}</CardTitle>
+                        <CardDescription>Total journalier toutes catégories confondues.</CardDescription>
                     </div>
                     <div className="text-right">
                          <p className="text-lg font-bold text-primary">{formatCurrency(day.total / 5, "Ariary")}</p>
@@ -137,45 +137,45 @@ export function ExpenseList({
                     {sortedAggregatedExpenses.map((aggExpense) => (
                     <AccordionItem value={aggExpense.label} key={aggExpense.label}>
                         <AccordionTrigger className="hover:no-underline">
-                        <div className="flex justify-between w-full items-center">
-                            <div className="flex items-center gap-2 group/header">
-                                <span className="font-medium text-lg text-left">{aggExpense.label}</span>
-                                <div className="flex items-center opacity-0 group-hover/header:opacity-100 transition-opacity">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditingLabel(aggExpense.label);
-                                        }}
-                                    >
-                                    <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setDeletingLabel(aggExpense.label);
-                                        }}
-                                    >
-                                    <Trash2 className="h-4 w-4" />
-                                    </Button>
+                           <div className="flex justify-between w-full items-center">
+                                <div className="flex items-center gap-2 group/header">
+                                    <span className="font-medium text-lg text-left">{aggExpense.label}</span>
+                                    <div className="flex items-center opacity-0 group-hover/header:opacity-100 transition-opacity">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setEditingLabel(aggExpense.label);
+                                            }}
+                                        >
+                                        <Pencil className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-7 w-7"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setDeletingLabel(aggExpense.label);
+                                            }}
+                                        >
+                                        <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <div className="text-right">
-                                    <p className="font-bold text-primary">
-                                        {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
-                                    </p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {formatCurrency(aggExpense.totalAmount, "FMG")}
-                                    </p>
+                                <div className="flex items-center gap-2">
+                                    <div className="text-right">
+                                        <p className="font-bold text-primary">
+                                            {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {formatCurrency(aggExpense.totalAmount, "FMG")}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
+                           </div>
                         </AccordionTrigger>
                         <AccordionContent>
                         <ul className="space-y-2 pt-2">
@@ -208,10 +208,10 @@ export function ExpenseList({
                                     </Button>
                                 </div>
                                 </div>
-                                <TransactionTimestamp 
-                                        createdAt={transaction.createdAt} 
-                                        updatedAt={transaction.updatedAt} 
-                                    />
+                                 <TransactionTimestamp 
+                                    createdAt={transaction.createdAt} 
+                                    updatedAt={transaction.updatedAt} 
+                                />
                                 </li>
                             ))}
                         </ul>
@@ -246,8 +246,8 @@ export function ExpenseList({
                 }
                 setDeletingItemId(null);
             }}
-            title="Delete Expense"
-            description="Are you sure you want to delete this expense? This action cannot be undone."
+            title="Supprimer la dépense"
+            description="Êtes-vous sûr de vouloir supprimer cette dépense ? Cette action est irréversible."
         />
       )}
       {editingLabel && (
@@ -273,8 +273,8 @@ export function ExpenseList({
                 }
                 setDeletingLabel(null);
             }}
-            title={`Delete Label "${deletingLabel}"`}
-            description="Are you sure? This will finally delete all expenses associated with this label. This action cannot be undone."
+            title={`Supprimer l'étiquette "${deletingLabel}"`}
+            description="Êtes-vous sûr ? Cela supprimera définitivement toutes les dépenses associées à cette étiquette. Cette action est irréversible."
         />
       )}
     </>

@@ -27,7 +27,7 @@ import { updateExpense as updateExpenseInDb } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
-  amount: z.coerce.number().positive({ message: "Amount must be positive." }),
+  amount: z.coerce.number().positive({ message: "Le montant doit être positif." }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -81,15 +81,15 @@ export function EditExpenseDialog({
 
       onExpenseUpdate(updatedExpense);
       toast({
-        title: "Expense Updated",
-        description: "The expense has been successfully updated.",
+        title: "Dépense mise à jour",
+        description: "La dépense a été mise à jour avec succès.",
       });
       onClose();
     } catch (error) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to update expense. Please try again.",
+        title: "Erreur",
+        description: "Impossible de mettre à jour la dépense. Veuillez réessayer.",
       });
     } finally {
       setIsSubmitting(false);
@@ -100,9 +100,9 @@ export function EditExpenseDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Expense</DialogTitle>
+          <DialogTitle>Modifier la dépense</DialogTitle>
           <DialogDescription>
-            Update the amount for this expense. The original currency was {expense.currency}.
+            Mettez à jour le montant de cette dépense. La devise d'origine était {expense.currency}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -112,7 +112,7 @@ export function EditExpenseDialog({
               name="amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount ({expense.currency})</FormLabel>
+                  <FormLabel>Montant ({expense.currency})</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
                   </FormControl>
@@ -127,10 +127,10 @@ export function EditExpenseDialog({
                 onClick={onClose}
                 disabled={isSubmitting}
               >
-                Cancel
+                Annuler
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Save Changes"}
+                {isSubmitting ? "Enregistrement..." : "Enregistrer"}
               </Button>
             </DialogFooter>
           </form>

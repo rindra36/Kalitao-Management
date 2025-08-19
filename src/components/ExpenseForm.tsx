@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import { CalendarIcon, PlusCircle } from "lucide-react"
 import { format } from "date-fns"
+import { fr } from "date-fns/locale"
 import { useEffect, useState } from "react"
 
 import { cn } from "@/lib/utils"
@@ -36,10 +37,10 @@ import type { Expense } from "@/types"
 import { useToast } from "@/hooks/use-toast"
 
 const formSchema = z.object({
-  amount: z.coerce.number().positive({ message: "Amount must be positive." }),
+  amount: z.coerce.number().positive({ message: "Le montant doit être positif." }),
   currency: z.enum(["FMG", "Ariary"]),
-  label: z.string().min(1, { message: "Label is required." }),
-  date: z.date({ required_error: "A date is required." }),
+  label: z.string().min(1, { message: "L'étiquette est requise." }),
+  date: z.date({ required_error: "Une date est requise." }),
 })
 
 type ExpenseFormValues = z.infer<typeof formSchema>
@@ -75,8 +76,8 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
     try {
       await addExpense(data)
       toast({
-        title: "Expense Added",
-        description: `${data.label} expense has been logged successfully.`,
+        title: "Dépense ajoutée",
+        description: `La dépense "${data.label}" a été enregistrée avec succès.`,
       })
       form.reset({
         amount: "" as any,
@@ -87,8 +88,8 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
     } catch (error) {
        toast({
         variant: "destructive",
-        title: "Error",
-        description: "Failed to add expense. Please try again.",
+        title: "Erreur",
+        description: "Impossible d'ajouter la dépense. Veuillez réessayer.",
       })
     } finally {
       setIsSubmitting(false);
@@ -103,7 +104,7 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
           name="amount"
           render={({ field }) => (
             <FormItem className="lg:col-span-1">
-              <FormLabel>Amount</FormLabel>
+              <FormLabel>Montant</FormLabel>
               <FormControl>
                 <Input type="number" placeholder="5000" {...field} />
               </FormControl>
@@ -116,11 +117,11 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
           name="currency"
           render={({ field }) => (
             <FormItem className="lg:col-span-1">
-              <FormLabel>Currency</FormLabel>
+              <FormLabel>Devise</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select currency" />
+                    <SelectValue placeholder="Sélectionner une devise" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -137,14 +138,16 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
           name="label"
           render={({ field }) => (
             <FormItem className="lg:col-span-1">
-              <FormLabel>Label</FormLabel>
+              <FormLabel>Étiquette</FormLabel>
               <FormControl>
                 <Combobox
                   options={labelOptions}
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="e.g., Groceries"
-                  searchPlaceholder="Search or create..."
+                  placeholder="ex: Courses"
+                  searchPlaceholder="Rechercher ou créer..."
+                  emptyText="Aucun résultat."
+                  createText={(value) => `Ajouter "${value}"`}
                 />
               </FormControl>
               <FormMessage />
@@ -168,9 +171,9 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
                       )}
                     >
                       {field.value ? (
-                        format(field.value, "PPP")
+                        format(field.value, "PPP", { locale: fr })
                       ) : (
-                        <span>Pick a date</span>
+                        <span>Choisir une date</span>
                       )}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
@@ -182,6 +185,7 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
                     selected={field.value}
                     onSelect={field.onChange}
                     initialFocus
+                    locale={fr}
                   />
                 </PopoverContent>
               </Popover>
@@ -190,7 +194,7 @@ export function ExpenseForm({ addExpense, uniqueLabels }: ExpenseFormProps) {
           )}
         />
         <Button type="submit" className="w-full h-10 md:col-span-2 lg:col-span-1" disabled={isSubmitting}>
-          {isSubmitting ? 'Adding...' : <><PlusCircle className="mr-2 h-4 w-4" /> Add Expense</>}
+          {isSubmitting ? 'Ajout...' : <><PlusCircle className="mr-2 h-4 w-4" /> Ajouter</>}
         </Button>
       </form>
     </Form>

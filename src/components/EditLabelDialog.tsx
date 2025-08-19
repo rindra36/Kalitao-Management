@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
 const formSchema = z.object({
-  label: z.string().min(1, { message: "Label cannot be empty." }),
+  label: z.string().min(1, { message: "L'étiquette ne peut pas être vide." }),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -68,9 +68,9 @@ export function EditLabelDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Label</DialogTitle>
+          <DialogTitle>Modifier l'étiquette</DialogTitle>
           <DialogDescription>
-            Rename the label. This will update it for all associated expenses.
+            Renommez l'étiquette. Cela la mettra à jour pour toutes les dépenses associées.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -80,7 +80,7 @@ export function EditLabelDialog({
               name="label"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>New Label Name</FormLabel>
+                  <FormLabel>Nouveau nom de l'étiquette</FormLabel>
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
@@ -90,10 +90,10 @@ export function EditLabelDialog({
             />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
-                Cancel
+                Annuler
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : "Save Changes"}
+                {isSubmitting ? "Enregistrement..." : "Enregistrer"}
               </Button>
             </DialogFooter>
           </form>
