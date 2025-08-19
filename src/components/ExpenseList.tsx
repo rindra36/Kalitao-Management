@@ -30,6 +30,7 @@ interface ExpenseListProps {
   onExpenseDelete: (id: string) => void;
   onLabelEdit: (oldLabel: string, newLabel: string) => Promise<void>;
   onLabelDelete: (label: string) => Promise<void>;
+  uniqueLabels: string[];
 }
 
 type AggregatedExpense = {
@@ -48,7 +49,7 @@ const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updat
   const wasUpdated = updatedAt && isAfter(updatedAt, createdAt);
   
   return (
-    <div className="text-xs text-muted-foreground" title={wasUpdated ? `Modifié: ${formatDate(updatedAt, "PPpp", { locale: fr })}`: `Créé: ${formatDate(createdAt, "PPpp", { locale: fr })}`}>
+    <div className="text-xs text-muted-foreground text-right" title={wasUpdated ? `Modifié: ${formatDate(updatedAt, "PPpp", { locale: fr })}`: `Créé: ${formatDate(createdAt, "PPpp", { locale: fr })}`}>
       {wasUpdated && (
         <span>
           {formatDate(updatedAt, "d MMM, HH:mm", { locale: fr })}{' '}
@@ -67,6 +68,7 @@ export function ExpenseList({
   onExpenseDelete,
   onLabelEdit,
   onLabelDelete,
+  uniqueLabels,
 }: ExpenseListProps) {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
@@ -187,26 +189,26 @@ export function ExpenseList({
                                 className="flex justify-between items-center p-3 rounded-md bg-secondary/50 group/item"
                                 >
                                 <div className="flex items-center gap-3">
-                                    <ReceiptText className="h-4 w-4 text-muted-foreground" />
-                                    <div className="text-left">
-                                    <p className="font-semibold">
-                                        {formatCurrency(transaction.amount, "FMG")}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {formatCurrency(
-                                        transaction.amount / 5,
-                                        "Ariary"
-                                        )}
-                                    </p>
+                                    <ReceiptText className="h-5 w-5 text-muted-foreground" />
+                                    <div className="flex-grow">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold">
+                                          {formatCurrency(transaction.amount, "FMG")}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                          ({formatCurrency(transaction.amount / 5,"Ariary")})
+                                        </span>
+                                      </div>
+                                      {transaction.remark && <p className="text-sm text-muted-foreground italic mt-1">{transaction.remark}</p>}
                                     </div>
-                                <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingExpense(transaction)}>
-                                    <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeletingItemId(transaction.id)}>
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingExpense(transaction)}>
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeletingItemId(transaction.id)}>
+                                          <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
                                 </div>
                                  <TransactionTimestamp 
                                     createdAt={transaction.createdAt} 
@@ -234,6 +236,7 @@ export function ExpenseList({
             onExpenseUpdate(updatedExpense);
             setEditingExpense(null);
           }}
+          uniqueLabels={uniqueLabels}
         />
       )}
       {deletingItemId && (

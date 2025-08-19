@@ -7,7 +7,7 @@ import { ObjectId } from "mongodb";
 async function getExpensesCollection() {
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB); 
-  return db.collection("expenses");
+  return db.collection<Omit<Expense, 'id'>>("expenses");
 }
 
 export async function getExpenses(): Promise<Expense[]> {
@@ -19,7 +19,7 @@ export async function getExpenses(): Promise<Expense[]> {
       .toArray();
 
     return expensesFromDb.map((expense) => {
-      const { _id, ...rest } = expense;
+      const { _id, ...rest } = expense as any;
       return {
         ...rest,
         id: _id.toString(),
@@ -39,9 +39,10 @@ export async function addExpense(expenseData: Omit<Expense, "id" | "createdAt" |
     const expensesCollection = await getExpensesCollection();
     
     const now = new Date();
-    const documentToInsert = {
+    const documentToInsert: Omit<Expense, 'id'> = {
       ...expenseData,
       date: new Date(expenseData.date),
+      remark: expenseData.remark || '',
       createdAt: now,
       updatedAt: now,
     };
@@ -54,10 +55,7 @@ export async function addExpense(expenseData: Omit<Expense, "id" | "createdAt" |
     
     return {
       id: result.insertedId.toString(),
-      ...expenseData,
-      date: documentToInsert.date,
-      createdAt: documentToInsert.createdAt,
-      updatedAt: documentToInsert.updatedAt,
+      ...documentToInsert,
     };
   } catch (error) {
     console.error("Error adding expense:", error);
@@ -69,7 +67,7 @@ export async function updateExpense(id: string, updates: Partial<Omit<Expense, "
   try {
     const expensesCollection = await getExpensesCollection();
 
-    const updatesWithTimestamp = {
+    const updatesWithTimestamp: Partial<Omit<Expense, 'id'>> & { updatedAt: Date } = {
       ...updates,
       updatedAt: new Date(),
     };
@@ -89,7 +87,7 @@ export async function updateExpense(id: string, updates: Partial<Omit<Expense, "
       throw new Error("Expense not found or failed to update.");
     }
 
-    const { _id, ...updatedDoc } = result;
+    const { _id, ...updatedDoc } = result as any;
 
     return { 
         ...updatedDoc, 

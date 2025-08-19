@@ -13,7 +13,7 @@ import { DateRange } from "react-day-picker"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn, formatCurrency } from "@/lib/utils"
-import { getExpenses, addExpense as addExpenseToDb, deleteExpense as deleteExpenseFromDb, updateLabelInExpenses, deleteExpensesByLabel } from "@/services/database"
+import { getExpenses, addExpense as addExpenseToDb, deleteExpense as deleteExpenseFromDb, updateLabelInExpenses, deleteExpensesByLabel, updateExpense } from "@/services/database"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 
@@ -44,10 +44,6 @@ export default function Home() {
 
   const handleExpenseUpdate = (updatedExpense: Expense) => {
     setExpenses(prev => prev.map(e => e.id === updatedExpense.id ? updatedExpense : e));
-    toast({
-      title: "Dépense mise à jour",
-      description: "La dépense a été mise à jour avec succès.",
-    });
   };
   
   const handleExpenseDelete = async (deletedExpenseId: string) => {
@@ -239,6 +235,7 @@ export default function Home() {
               onExpenseDelete={handleExpenseDelete}
               onLabelEdit={handleLabelEdit}
               onLabelDelete={handleLabelDelete}
+              uniqueLabels={uniqueLabels}
             />
           )
         )}

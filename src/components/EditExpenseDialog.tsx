@@ -25,9 +25,20 @@ import { Button } from "@/components/ui/button";
 import type { Expense } from "@/types";
 import { updateExpense as updateExpenseInDb } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "./ui/calendar";
+import { Combobox } from "./ui/combobox";
+import { Textarea } from "./ui/textarea";
 
 const formSchema = z.object({
   amount: z.coerce.number().positive({ message: "Le montant doit être positif." }),
+  label: z.string().min(1, { message: "L'étiquette est requise." }),
+  date: z.date({ required_error: "Une date est requise." }),
+  remark: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -37,6 +48,7 @@ interface EditExpenseDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onExpenseUpdate: (expense: Expense) => void;
+  uniqueLabels: string[];
 }
 
 export function EditExpenseDialog({
@@ -44,12 +56,11 @@ export function EditExpenseDialog({
   isOpen,
   onClose,
   onExpenseUpdate,
+  uniqueLabels,
 }: EditExpenseDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // The amount displayed and edited should be in the currency it was entered in.
-  // The conversion to FMG for storage is an implementation detail.
   const displayAmount =
     expense.currency === "Ariary" ? expense.amount / 5 : expense.amount;
 
@@ -57,6 +68,9 @@ export function EditExpenseDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: displayAmount,
+      label: expense.label,
+      date: expense.date,
+      remark: expense.remark || "",
     },
   });
 
@@ -64,20 +78,31 @@ export function EditExpenseDialog({
     if (expense) {
       const displayAmount =
         expense.currency === "Ariary" ? expense.amount / 5 : expense.amount;
-      form.reset({ amount: displayAmount });
+      form.reset({ 
+        amount: displayAmount,
+        label: expense.label,
+        date: new Date(expense.date),
+        remark: expense.remark || "",
+      });
     }
   }, [expense, form]);
+
+  const labelOptions = uniqueLabels.map(label => ({ value: label, label }));
 
   async function onSubmit(data: FormValues) {
     setIsSubmitting(true);
     try {
-      // Convert back to FMG if the original entry was Ariary
       const amountInFmg =
         expense.currency === "Ariary" ? data.amount * 5 : data.amount;
 
-      const updatedExpense = await updateExpenseInDb(expense.id, {
+      const updatedExpenseData = {
         amount: amountInFmg,
-      });
+        label: data.label,
+        date: data.date,
+        remark: data.remark,
+      };
+
+      const updatedExpense = await updateExpenseInDb(expense.id, updatedExpenseData);
 
       onExpenseUpdate(updatedExpense);
       toast({
@@ -98,16 +123,16 @@ export function EditExpenseDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Modifier la dépense</DialogTitle>
+          <DialogTitle>Détail de la dépense</DialogTitle>
           <DialogDescription>
-            Mettez à jour le montant de cette dépense. La devise d'origine était {expense.currency}.
+            Modifiez les détails de votre dépense. La devise d'origine était {expense.currency}.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
+             <FormField
               control={form.control}
               name="amount"
               render={({ field }) => (
@@ -115,6 +140,79 @@ export function EditExpenseDialog({
                   <FormLabel>Montant ({expense.currency})</FormLabel>
                   <FormControl>
                     <Input type="number" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="label"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Étiquette</FormLabel>
+                  <FormControl>
+                    <Combobox
+                      options={labelOptions}
+                      value={field.value}
+                      onChange={field.onChange}
+                      placeholder="ex: Courses"
+                      searchPlaceholder="Rechercher ou créer..."
+                      emptyText="Aucun résultat."
+                      createText={(value) => `Ajouter "${value}"`}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                   <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP", { locale: fr })
+                          ) : (
+                            <span>Choisir une date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                        locale={fr}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="remark"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Remarque</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Ajouter une note..." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
