@@ -45,11 +45,14 @@ const CustomAccordionTrigger = ({ children, value }: { children: React.ReactNode
   const isOpen = Array.isArray(contextValue) ? contextValue.includes(value) : contextValue === value;
 
   return (
-    <div
-      className={cn("flex flex-1 items-center justify-between py-4 font-medium cursor-pointer group", { "hover:underline": !isOpen })}
-      onClick={() => onToggle(value)}
-    >
+    <div className="flex w-full items-center justify-between" onClick={() => onToggle(value)}>
       {children}
+      <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 transition-transform duration-200",
+            { "rotate-180": isOpen }
+          )}
+        />
     </div>
   );
 };
@@ -119,37 +122,36 @@ export function ExpenseList({
           <Accordion type="multiple" className="w-full" value={openItems} onValueChange={setOpenItems}>
             {sortedAggregatedExpenses.map((aggExpense) => (
               <AccordionItem value={aggExpense.label} key={aggExpense.label}>
-                <div className="flex items-center group/header">
+                 <div className="flex w-full items-center justify-between py-4 font-medium cursor-pointer group/header">
                   <CustomAccordionTrigger value={aggExpense.label}>
-                    <div className="flex justify-between items-center w-full">
-                       <div className="flex items-center gap-2 text-left">
-                          <span className="font-medium text-lg">{aggExpense.label}</span>
-                          <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
-                              <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                  e.stopPropagation();
-                                  setEditingLabel(aggExpense.label);
-                              }}
-                              >
-                              <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={(e) => {
-                                  e.stopPropagation();
-                                  setDeletingLabel(aggExpense.label);
-                              }}
-                              >
-                              <Trash2 className="h-4 w-4" />
-                              </Button>
-                          </div>
-                      </div>
-                      <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-left">
+                        <span className="font-medium text-lg">{aggExpense.label}</span>
+                        <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
+                            <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingLabel(aggExpense.label);
+                            }}
+                            >
+                            <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingLabel(aggExpense.label);
+                            }}
+                            >
+                            <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                     <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className="font-bold text-primary">
                             {formatCurrency(aggExpense.totalAmount / 5, "Ariary")}
@@ -158,11 +160,9 @@ export function ExpenseList({
                             {formatCurrency(aggExpense.totalAmount, "FMG")}
                           </p>
                         </div>
-                        <ChevronDown className={cn("h-4 w-4 shrink-0 transition-transform duration-200", { "rotate-180": openItems.includes(aggExpense.label) })}/>
                       </div>
-                    </div>
                   </CustomAccordionTrigger>
-                </div>
+                 </div>
                 <AccordionContent>
                   <ul className="space-y-2 pt-2">
                     {aggExpense.transactions
