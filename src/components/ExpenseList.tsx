@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { isSameDay, format as formatDate, isAfter } from "date-fns";
-import { PiggyBank, ReceiptText, Pencil, Trash2 } from "lucide-react";
+import { PiggyBank, ReceiptText, Pencil, Trash2, ChevronDown } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
@@ -42,10 +42,10 @@ const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updat
   const wasUpdated = updatedAt && isAfter(updatedAt, createdAt);
   
   return (
-    <div className="text-xs text-muted-foreground text-right">
+    <div className="text-xs text-muted-foreground">
       {wasUpdated && (
         <span title={formatDate(updatedAt, "PPpp")}>
-          {formatDate(updatedAt, "MMM d, HH:mm")}
+          {formatDate(updatedAt, "MMM d, HH:mm")}{' '}
         </span>
       )}
       <span title={formatDate(createdAt, "PPpp")}>
@@ -163,7 +163,7 @@ export function ExpenseList({
                 <AccordionContent>
                   <ul className="space-y-2 pt-2">
                     {aggExpense.transactions
-                      .sort((a, b) => b.amount - a.amount)
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                       .map((transaction) => (
                         <li
                           key={transaction.id}
