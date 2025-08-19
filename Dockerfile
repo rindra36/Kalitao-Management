@@ -53,4 +53,4 @@ USER nextjs
 
 # The command to start the app. 
 # `next start` will use the port from the .env file or default to 3000.
-CMD ["npm", "start", "-p", "3000"]
+CMD ["npm", "start"]
