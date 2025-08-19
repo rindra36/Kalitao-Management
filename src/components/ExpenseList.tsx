@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { isSameDay, format as formatDate, isAfter } from "date-fns";
-import { PiggyBank, ReceiptText, Pencil, Trash2, ChevronDown } from "lucide-react";
+import { PiggyBank, ReceiptText, Pencil, Trash2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
@@ -42,7 +42,7 @@ const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updat
   const wasUpdated = updatedAt && isAfter(updatedAt, createdAt);
   
   return (
-    <div className="text-xs text-muted-foreground">
+    <div className="text-xs text-muted-foreground text-right">
       {wasUpdated && (
         <span title={formatDate(updatedAt, "PPpp")}>
           {formatDate(updatedAt, "MMM d, HH:mm")}
@@ -119,8 +119,8 @@ export function ExpenseList({
           <Accordion type="multiple" className="w-full">
             {sortedAggregatedExpenses.map((aggExpense) => (
               <AccordionItem value={aggExpense.label} key={aggExpense.label}>
-                 <AccordionTrigger className="hover:no-underline">
-                  <div className="flex justify-between w-full items-center">
+                <AccordionTrigger className="hover:no-underline">
+                   <div className="flex justify-between w-full items-center">
                     <div className="flex items-center gap-2 group/header">
                       <span className="font-medium text-lg text-left">{aggExpense.label}</span>
                        <div className="flex items-center opacity-0 group-hover/header:opacity-100 transition-opacity">
@@ -157,7 +157,6 @@ export function ExpenseList({
                             {formatCurrency(aggExpense.totalAmount, "FMG")}
                             </p>
                         </div>
-                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                     </div>
                   </div>
                 </AccordionTrigger>
@@ -183,11 +182,6 @@ export function ExpenseList({
                                 )}
                               </p>
                             </div>
-                             <TransactionTimestamp 
-                                createdAt={transaction.createdAt} 
-                                updatedAt={transaction.updatedAt} 
-                            />
-                          </div>
                            <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingExpense(transaction)}>
                                <Pencil className="h-4 w-4" />
@@ -196,6 +190,11 @@ export function ExpenseList({
                                 <Trash2 className="h-4 w-4" />
                              </Button>
                            </div>
+                          </div>
+                           <TransactionTimestamp 
+                                createdAt={transaction.createdAt} 
+                                updatedAt={transaction.updatedAt} 
+                            />
                         </li>
                       ))}
                   </ul>
