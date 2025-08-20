@@ -11,18 +11,20 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 import { isAfter, format as formatDate, startOfDay } from "date-fns";
 import { fr } from 'date-fns/locale';
-import { PiggyBank, ReceiptText, Pencil, Trash2 } from "lucide-react";
+import { PiggyBank, ReceiptText, Pencil, Trash2, Search as SearchIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState, useMemo, useEffect } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
 import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
 import { EditLabelDialog } from "./EditLabelDialog";
+import { PaginationControls } from "./PaginationControls";
 
 type AccordionState = 'all-open' | 'all-closed' | 'default';
 
@@ -49,6 +51,13 @@ type DailyExpense = {
     total: number; // in FMG
     expensesByLabel: Record<string, AggregatedExpense>;
 };
+
+type PaginationState = {
+    [dateISO: string]: {
+        currentPage: number;
+        itemsPerPage: number;
+    }
+}
 
 const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updatedAt: Date }) => {
   const wasUpdated = updatedAt && createdAt && isAfter(updatedAt, createdAt) && (updatedAt.getTime() - createdAt.getTime() > 1000);
@@ -84,6 +93,7 @@ export function ExpenseList({
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [deletingLabel, setDeletingLabel] = useState<string | null>(null);
   const [openAccordions, setOpenAccordions] = useState<string[]>([]);
+  const [paginationState, setPaginationState] = useState<PaginationState>({});
 
  const dailyExpenses = useMemo(() => {
     const groupedByDay = expenses.reduce<Record<string, DailyExpense>>((acc, expense) => {
@@ -128,6 +138,12 @@ export function ExpenseList({
     }).filter(Boolean) as DailyExpense[];
 
   }, [dailyExpenses, searchQuery]);
+  
+  // Reset pagination when search query or expenses change
+  useEffect(() => {
+    setPaginationState({});
+  }, [searchQuery, expenses]);
+
 
   useEffect(() => {
     const allLabels = filteredDailyExpenses.flatMap(day => 
@@ -166,7 +182,7 @@ export function ExpenseList({
      return (
       <Card className="mt-6 border-dashed border-2 shadow-none">
         <CardContent className="pt-6 text-center text-muted-foreground flex flex-col items-center justify-center h-48">
-          <Search className="mx-auto h-12 w-12 mb-4" />
+          <SearchIcon className="mx-auto h-12 w-12 mb-4" />
           <p className="font-semibold">Aucun résultat</p>
           <p className="text-sm">
            Aucune étiquette ne correspond à votre recherche.
@@ -181,9 +197,37 @@ export function ExpenseList({
     <>
     <div className="space-y-6">
       {filteredDailyExpenses.map(day => {
+        const dayISO = day.date.toISOString();
+        
+        const { currentPage = 1, itemsPerPage = 10 } = paginationState[dayISO] || {};
+
         const sortedAggregatedExpenses = Object.values(day.expensesByLabel).sort(
             (a, b) => b.totalAmount - a.totalAmount
         );
+
+        const totalItems = sortedAggregatedExpenses.length;
+        const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+        const paginatedExpenses = sortedAggregatedExpenses.slice(
+            (currentPage - 1) * itemsPerPage,
+            currentPage * itemsPerPage
+        );
+        
+        const handlePageChange = (page: number) => {
+            setPaginationState(prev => ({
+                ...prev,
+                [dayISO]: { ... (prev[dayISO] || { itemsPerPage: 10 }), currentPage: page }
+            }));
+        };
+
+        const handleItemsPerPageChange = (newSize: number) => {
+            setPaginationState(prev => ({
+                ...prev,
+                [dayISO]: { ... (prev[dayISO] || { currentPage: 1 }), itemsPerPage: newSize, currentPage: 1 }
+            }));
+        };
+
+
         return (
             <Card key={day.date.toISOString()} className="shadow-lg">
                 <CardHeader className="flex flex-row justify-between items-center">
@@ -203,7 +247,7 @@ export function ExpenseList({
                   value={openAccordions}
                   onValueChange={setOpenAccordions}
                 >
-                    {sortedAggregatedExpenses.map((aggExpense) => (
+                    {paginatedExpenses.map((aggExpense) => (
                     <AccordionItem value={`${day.date.toISOString()}-${aggExpense.label}`} key={aggExpense.label}>
                         <AccordionTrigger className="hover:no-underline">
                            <div className="flex justify-between w-full pr-4 items-center">
@@ -287,6 +331,18 @@ export function ExpenseList({
                     ))}
                 </Accordion>
                 </CardContent>
+                {totalPages > 1 && (
+                    <CardFooter>
+                        <PaginationControls
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={handlePageChange}
+                            itemsPerPage={itemsPerPage}
+                            onItemsPerPageChange={handleItemsPerPageChange}
+                            totalItems={totalItems}
+                        />
+                    </CardFooter>
+                )}
             </Card>
         )
       })}
@@ -348,5 +404,3 @@ export function ExpenseList({
     </>
   );
 }
-
-    
