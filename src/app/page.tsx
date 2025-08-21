@@ -2,11 +2,11 @@
 
 import { useState, useMemo, useEffect, useCallback } from "react"
 import { ExpenseForm } from "@/components/ExpenseForm"
-import { ExpenseList } from "@/components/ExpenseList"
+import { ExpenseList, type ActiveFilters } from "@/components/ExpenseList"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Expense } from "@/types"
 import { Button } from "@/components/ui/button"
-import { CalendarIcon, Search, ChevronsDown, ChevronsUp, ArrowUpDown } from "lucide-react"
+import { CalendarIcon, Search, ChevronsDown, ChevronsUp, ArrowUpDown, Filter } from "lucide-react"
 import { format, startOfDay } from "date-fns"
 import { fr } from 'date-fns/locale';
 import { DateRange } from "react-day-picker"
@@ -18,6 +18,9 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
+
 
 const FMG_TO_ARIARY_RATE = 5;
 
@@ -30,6 +33,7 @@ export type SortOption =
   | 'name-za' 
   | 'transactions-desc';
 
+
 export default function Home() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
@@ -37,10 +41,13 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [accordionState, setAccordionState] = useState<AccordionState>('default');
   const [sortOption, setSortOption] = useState<SortOption>('amount-desc');
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
+    balanceStatus: [],
+    hasRemark: false,
+  });
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set initial date range to today on the client to avoid hydration mismatch
     const today = new Date();
     setDateRange({ from: startOfDay(today), to: today });
   }, []);
@@ -120,7 +127,6 @@ export default function Home() {
     }
   };
 
-
   const addExpense = async (newExpenseData: Omit<Expense, "id" | "createdAt" | "updatedAt">) => {
     const amountInFmg = newExpenseData.currency === 'Ariary'
       ? newExpenseData.amount * FMG_TO_ARIARY_RATE
@@ -140,10 +146,9 @@ export default function Home() {
     return Array.from(labels);
   }, [expenses]);
   
-  const filteredExpenses = useMemo(() => {
+  const filteredExpensesByDate = useMemo(() => {
     if (!dateRange?.from) return [];
     const fromDate = startOfDay(dateRange.from);
-    // If no 'to' date, use the 'from' date for a single day range
     const toDate = dateRange.to ? startOfDay(dateRange.to) : fromDate;
 
     return expenses.filter(expense => {
@@ -153,9 +158,15 @@ export default function Home() {
   }, [expenses, dateRange]);
 
   const totalForRange = useMemo(() => {
-    return filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  }, [filteredExpenses]);
+    return filteredExpensesByDate.reduce((sum, expense) => sum + expense.amount, 0);
+  }, [filteredExpensesByDate]);
 
+  const filterCount = useMemo(() => {
+    let count = 0;
+    if (activeFilters.balanceStatus.length > 0) count++;
+    if (activeFilters.hasRemark) count++;
+    return count;
+  }, [activeFilters]);
 
   return (
     <main className="container mx-auto p-4 md:p-8">
@@ -232,7 +243,7 @@ export default function Home() {
         
         {/* Search and Controls */}
         <Card className="mb-6 p-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="flex flex-col md:flex-row gap-4 items-center">
               <div className="relative flex-grow w-full">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -243,7 +254,7 @@ export default function Home() {
                       onChange={(e) => setSearchQuery(e.target.value)}
                   />
               </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full md:w-auto">
                 <Select value={sortOption} onValueChange={(value) => setSortOption(value as SortOption)}>
                     <SelectTrigger className="w-full sm:w-[220px]">
                         <ArrowUpDown className="mr-2 h-4 w-4" />
@@ -257,6 +268,64 @@ export default function Home() {
                         <SelectItem value="transactions-desc">Plus de transactions</SelectItem>
                     </SelectContent>
                 </Select>
+                 <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="relative w-full sm:w-auto">
+                      <Filter className="mr-2 h-4 w-4" />
+                      Filtres
+                      {filterCount > 0 && (
+                        <Badge variant="secondary" className="absolute -top-2 -right-2 h-5 w-5 justify-center p-0">{filterCount}</Badge>
+                      )}
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56">
+                    <DropdownMenuLabel>Statut du Solde</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuCheckboxItem
+                      checked={activeFilters.balanceStatus.includes("i_owe")}
+                      onCheckedChange={(checked) => {
+                        setActiveFilters(prev => ({
+                          ...prev,
+                          balanceStatus: checked ? [...prev.balanceStatus, "i_owe"] : prev.balanceStatus.filter(s => s !== "i_owe")
+                        }));
+                      }}
+                    >
+                      Je dois
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={activeFilters.balanceStatus.includes("owes_me")}
+                      onCheckedChange={(checked) => {
+                        setActiveFilters(prev => ({
+                          ...prev,
+                          balanceStatus: checked ? [...prev.balanceStatus, "owes_me"] : prev.balanceStatus.filter(s => s !== "owes_me")
+                        }));
+                      }}
+                    >
+                      On me doit
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuCheckboxItem
+                      checked={activeFilters.balanceStatus.includes("paid")}
+                      onCheckedChange={(checked) => {
+                        setActiveFilters(prev => ({
+                          ...prev,
+                          balanceStatus: checked ? [...prev.balanceStatus, "paid"] : prev.balanceStatus.filter(s => s !== "paid")
+                        }));
+                      }}
+                    >
+                      Soldée
+                    </DropdownMenuCheckboxItem>
+                    <DropdownMenuSeparator />
+                     <DropdownMenuLabel>Autres</DropdownMenuLabel>
+                    <DropdownMenuCheckboxItem
+                       checked={activeFilters.hasRemark}
+                       onCheckedChange={(checked) => {
+                         setActiveFilters(prev => ({ ...prev, hasRemark: !!checked }))
+                       }}
+                    >
+                      Avec remarque
+                    </DropdownMenuCheckboxItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <div className="flex items-center gap-2">
                     <Button variant="outline" onClick={() => setAccordionState('all-open')} className="p-2">
                         <ChevronsDown className="h-4 w-4" title="Tout ouvrir" />
@@ -284,7 +353,7 @@ export default function Home() {
         ) : (
           dateRange && (
             <ExpenseList
-              expenses={filteredExpenses}
+              expenses={filteredExpensesByDate}
               onExpenseUpdate={handleExpenseUpdate}
               onExpenseDelete={handleExpenseDelete}
               onLabelEdit={handleLabelEdit}
@@ -294,6 +363,7 @@ export default function Home() {
               accordionState={accordionState}
               onAccordionStateChange={setAccordionState}
               sortOption={sortOption}
+              activeFilters={activeFilters}
             />
           )
         )}

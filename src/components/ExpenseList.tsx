@@ -1,6 +1,6 @@
 "use client"
 
-import type { Expense } from "@/types";
+import type { BalanceStatus, Expense } from "@/types";
 import {
   Accordion,
   AccordionContent,
@@ -18,7 +18,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { isAfter, format as formatDate, startOfDay } from "date-fns";
 import { fr } from 'date-fns/locale';
-import { PiggyBank, ReceiptText, Pencil, Trash2, Search as SearchIcon, CheckCircle2 } from "lucide-react";
+import { PiggyBank, ReceiptText, Pencil, Trash2, Search as SearchIcon, CheckCircle2, Filter } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState, useMemo, useEffect } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
@@ -34,6 +34,10 @@ import type { SortOption } from "@/app/page";
 
 type AccordionState = 'all-open' | 'all-closed' | 'default';
 
+export interface ActiveFilters {
+  balanceStatus: BalanceStatus[];
+  hasRemark: boolean;
+}
 interface ExpenseListProps {
   expenses: Expense[];
   onExpenseUpdate: (expense: Expense) => void;
@@ -45,6 +49,7 @@ interface ExpenseListProps {
   accordionState: AccordionState;
   onAccordionStateChange: (state: AccordionState) => void;
   sortOption: SortOption;
+  activeFilters: ActiveFilters;
 }
 
 type AggregatedExpense = {
@@ -109,6 +114,7 @@ export function ExpenseList({
   accordionState,
   onAccordionStateChange,
   sortOption,
+  activeFilters,
 }: ExpenseListProps) {
   const { toast } = useToast();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -119,8 +125,18 @@ export function ExpenseList({
   const [openAccordions, setOpenAccordions] = useState<string[]>([]);
   const [paginationState, setPaginationState] = useState<PaginationState>({});
 
- const dailyExpenses = useMemo(() => {
-    const groupedByDay = expenses.reduce<Record<string, DailyExpense>>((acc, expense) => {
+  const filteredAndGroupedExpenses = useMemo(() => {
+    // 1. Apply primary filters (search and activeFilters)
+    const primaryFilteredExpenses = expenses.filter(expense => {
+        const balanceMatch = activeFilters.balanceStatus.length === 0 || activeFilters.balanceStatus.includes(expense.balanceStatus);
+        const remarkMatch = !activeFilters.hasRemark || (expense.remark && expense.remark.trim() !== '');
+        const searchMatch = !searchQuery || expense.label.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        return balanceMatch && remarkMatch && searchMatch;
+    });
+
+    // 2. Group by day
+    const groupedByDay = primaryFilteredExpenses.reduce<Record<string, DailyExpense>>((acc, expense) => {
         const day = startOfDay(expense.date).toISOString();
         if (!acc[day]) {
             acc[day] = {
@@ -141,36 +157,19 @@ export function ExpenseList({
         acc[day].expensesByLabel[expense.label].transactions.push(expense);
         return acc;
     }, {});
+
+    // 3. Convert to array and sort days
     return Object.values(groupedByDay).sort((a, b) => b.date.getTime() - a.date.getTime());
-  }, [expenses]);
+  }, [expenses, searchQuery, activeFilters]);
 
-  const filteredDailyExpenses = useMemo(() => {
-    if (!searchQuery) return dailyExpenses;
-    
-    return dailyExpenses.map(day => {
-      const filteredLabels = Object.values(day.expensesByLabel).filter(agg => 
-        agg.label.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      if (filteredLabels.length === 0) return null;
-
-      const newExpensesByLabel: Record<string, AggregatedExpense> = {};
-      filteredLabels.forEach(fl => {
-        newExpensesByLabel[fl.label] = fl;
-      });
-
-      return { ...day, expensesByLabel: newExpensesByLabel };
-    }).filter(Boolean) as DailyExpense[];
-
-  }, [dailyExpenses, searchQuery]);
-  
-  // Reset pagination when search query or expenses change
+  // Reset pagination when dependencies change
   useEffect(() => {
     setPaginationState({});
-  }, [searchQuery, expenses]);
+  }, [searchQuery, expenses, activeFilters]);
 
 
   useEffect(() => {
-    const allLabels = filteredDailyExpenses.flatMap(day => 
+    const allLabels = filteredAndGroupedExpenses.flatMap(day => 
       Object.keys(day.expensesByLabel).map(label => `${day.date.toISOString()}-${label}`)
     );
 
@@ -178,15 +177,15 @@ export function ExpenseList({
         setOpenAccordions(allLabels);
     } else if (accordionState === 'all-closed') {
         setOpenAccordions([]);
-    } else if (searchQuery) {
-        // Automatically open accordions that match the search query
+    } else if (searchQuery || activeFilters.balanceStatus.length > 0 || activeFilters.hasRemark) {
+        // Automatically open accordions that match the search/filter
         setOpenAccordions(allLabels);
     }
     // Reset the accordion state prop so it only acts as a trigger
     if (accordionState !== 'default') {
       onAccordionStateChange('default');
     }
-  }, [accordionState, onAccordionStateChange, searchQuery, filteredDailyExpenses]);
+  }, [accordionState, onAccordionStateChange, searchQuery, activeFilters, filteredAndGroupedExpenses]);
   
   const handleClearBalance = async () => {
     if (!clearingBalanceId) return;
@@ -223,14 +222,18 @@ export function ExpenseList({
     );
   }
 
-  if(filteredDailyExpenses.length === 0) {
+  if(filteredAndGroupedExpenses.length === 0) {
+     const hasFilters = activeFilters.balanceStatus.length > 0 || activeFilters.hasRemark;
+     const Icon = hasFilters ? Filter : SearchIcon;
+     const title = hasFilters ? "Aucune dépense ne correspond à vos filtres" : "Aucun résultat";
+     const description = hasFilters ? "Essayez de modifier ou de supprimer certains filtres." : "Aucune étiquette ne correspond à votre recherche.";
      return (
       <Card className="mt-6 border-dashed border-2 shadow-none">
         <CardContent className="pt-6 text-center text-muted-foreground flex flex-col items-center justify-center h-48">
-          <SearchIcon className="mx-auto h-12 w-12 mb-4" />
-          <p className="font-semibold">Aucun résultat</p>
+          <Icon className="mx-auto h-12 w-12 mb-4" />
+          <p className="font-semibold">{title}</p>
           <p className="text-sm">
-           Aucune étiquette ne correspond à votre recherche.
+           {description}
           </p>
         </CardContent>
       </Card>
@@ -241,7 +244,7 @@ export function ExpenseList({
   return (
     <>
     <div className="space-y-6">
-      {filteredDailyExpenses.map(day => {
+      {filteredAndGroupedExpenses.map(day => {
         const dayISO = day.date.toISOString();
         
         const { currentPage = 1, itemsPerPage = 10 } = paginationState[dayISO] || {};
