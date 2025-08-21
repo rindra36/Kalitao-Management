@@ -29,6 +29,8 @@ import { Badge } from "./ui/badge";
 import { clearExpenseBalance } from "@/services/database";
 import { useToast } from "@/hooks/use-toast";
 import { ClearBalanceDialog } from "./ClearBalanceDialog";
+import type { SortOption } from "@/app/page";
+
 
 type AccordionState = 'all-open' | 'all-closed' | 'default';
 
@@ -42,6 +44,7 @@ interface ExpenseListProps {
   searchQuery: string;
   accordionState: AccordionState;
   onAccordionStateChange: (state: AccordionState) => void;
+  sortOption: SortOption;
 }
 
 type AggregatedExpense = {
@@ -105,6 +108,7 @@ export function ExpenseList({
   searchQuery,
   accordionState,
   onAccordionStateChange,
+  sortOption,
 }: ExpenseListProps) {
   const { toast } = useToast();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -242,9 +246,21 @@ export function ExpenseList({
         
         const { currentPage = 1, itemsPerPage = 10 } = paginationState[dayISO] || {};
 
-        const sortedAggregatedExpenses = Object.values(day.expensesByLabel).sort(
-            (a, b) => b.totalAmount - a.totalAmount
-        );
+        const sortedAggregatedExpenses = Object.values(day.expensesByLabel).sort((a, b) => {
+          switch (sortOption) {
+            case 'amount-asc':
+              return a.totalAmount - b.totalAmount;
+            case 'name-az':
+              return a.label.localeCompare(b.label);
+            case 'name-za':
+              return b.label.localeCompare(a.label);
+            case 'transactions-desc':
+              return b.transactions.length - a.transactions.length;
+            case 'amount-desc':
+            default:
+              return b.totalAmount - a.totalAmount;
+          }
+        });
 
         const totalItems = sortedAggregatedExpenses.length;
         const totalPages = Math.ceil(totalItems / itemsPerPage);
