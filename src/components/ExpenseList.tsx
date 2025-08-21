@@ -18,13 +18,17 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { isAfter, format as formatDate, startOfDay } from "date-fns";
 import { fr } from 'date-fns/locale';
-import { PiggyBank, ReceiptText, Pencil, Trash2, Search as SearchIcon } from "lucide-react";
+import { PiggyBank, ReceiptText, Pencil, Trash2, Search as SearchIcon, CheckCircle2 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState, useMemo, useEffect } from "react";
 import { EditExpenseDialog } from "./EditExpenseDialog";
 import { DeleteConfirmationDialog } from "./DeleteConfirmationDialog";
 import { EditLabelDialog } from "./EditLabelDialog";
 import { PaginationControls } from "./PaginationControls";
+import { Badge } from "./ui/badge";
+import { clearExpenseBalance } from "@/services/database";
+import { useToast } from "@/hooks/use-toast";
+import { ClearBalanceDialog } from "./ClearBalanceDialog";
 
 type AccordionState = 'all-open' | 'all-closed' | 'default';
 
@@ -59,6 +63,20 @@ type PaginationState = {
     }
 }
 
+const BalanceBadge = ({ transaction }: { transaction: Expense }) => {
+  if (transaction.balanceStatus === 'paid' || !transaction.balanceAmount) {
+    return null;
+  }
+  
+  const balanceInFmg = transaction.currency === 'Ariary' ? transaction.balanceAmount * 5 : transaction.balanceAmount;
+  const displayAmount = formatCurrency(transaction.balanceAmount, transaction.currency);
+  
+  const variant = transaction.balanceStatus === 'i_owe' ? 'destructive' : 'default';
+  const text = transaction.balanceStatus === 'i_owe' ? `- ${displayAmount}` : `+ ${displayAmount}`;
+  
+  return <Badge variant={variant}>{text}</Badge>;
+}
+
 const TransactionTimestamp = ({ createdAt, updatedAt }: { createdAt: Date, updatedAt: Date }) => {
   const wasUpdated = updatedAt && createdAt && isAfter(updatedAt, createdAt) && (updatedAt.getTime() - createdAt.getTime() > 1000);
   
@@ -88,10 +106,12 @@ export function ExpenseList({
   accordionState,
   onAccordionStateChange,
 }: ExpenseListProps) {
+  const { toast } = useToast();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [deletingLabel, setDeletingLabel] = useState<string | null>(null);
+  const [clearingBalanceId, setClearingBalanceId] = useState<string | null>(null);
   const [openAccordions, setOpenAccordions] = useState<string[]>([]);
   const [paginationState, setPaginationState] = useState<PaginationState>({});
 
@@ -164,6 +184,27 @@ export function ExpenseList({
     }
   }, [accordionState, onAccordionStateChange, searchQuery, filteredDailyExpenses]);
   
+  const handleClearBalance = async () => {
+    if (!clearingBalanceId) return;
+    try {
+      const updatedExpense = await clearExpenseBalance(clearingBalanceId);
+      onExpenseUpdate(updatedExpense);
+      toast({
+        title: "Solde réglé",
+        description: "La dépense a été marquée comme soldée.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de régler le solde.",
+      });
+    } finally {
+      setClearingBalanceId(null);
+    }
+  };
+
+
   if (expenses.length === 0) {
     return (
       <Card className="mt-6 border-dashed border-2 shadow-none">
@@ -307,10 +348,16 @@ export function ExpenseList({
                                         <span className="text-xs text-muted-foreground">
                                           ({formatCurrency(transaction.amount / 5,"Ariary")})
                                         </span>
+                                        <BalanceBadge transaction={transaction} />
                                       </div>
                                       {transaction.remark && <p className="text-sm text-muted-foreground italic mt-1">{transaction.remark}</p>}
                                     </div>
                                     <div className="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                      {transaction.balanceStatus !== 'paid' && (
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setClearingBalanceId(transaction.id)}>
+                                            <CheckCircle2 className="h-4 w-4 text-green-600"/>
+                                        </Button>
+                                      )}
                                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingExpense(transaction)}>
                                         <Pencil className="h-4 w-4" />
                                       </Button>
@@ -399,6 +446,13 @@ export function ExpenseList({
             }}
             title={`Supprimer l'étiquette "${deletingLabel}"`}
             description="Êtes-vous sûr ? Cela supprimera définitivement toutes les dépenses associées à cette étiquette. Cette action est irréversible."
+        />
+      )}
+      {clearingBalanceId && (
+        <ClearBalanceDialog
+            isOpen={!!clearingBalanceId}
+            onClose={() => setClearingBalanceId(null)}
+            onConfirm={handleClearBalance}
         />
       )}
     </>

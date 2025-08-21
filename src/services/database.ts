@@ -1,7 +1,7 @@
 "use server"
 
 import clientPromise from "@/lib/mongodb";
-import type { Expense } from "@/types";
+import type { Expense, BalanceStatus } from "@/types";
 import { ObjectId } from "mongodb";
 
 async function getExpensesCollection() {
@@ -43,6 +43,8 @@ export async function addExpense(expenseData: Omit<Expense, "id" | "createdAt" |
       ...expenseData,
       date: new Date(expenseData.date),
       remark: expenseData.remark || '',
+      balanceStatus: expenseData.balanceStatus || 'paid',
+      balanceAmount: expenseData.balanceAmount || 0,
       createdAt: now,
       updatedAt: now,
     };
@@ -142,4 +144,11 @@ export async function deleteExpensesByLabel(label: string): Promise<number> {
         console.error("Error deleting expenses by label:", error);
         throw new Error("Could not delete expenses by label.");
     }
+}
+
+export async function clearExpenseBalance(id: string): Promise<Expense> {
+  return updateExpense(id, {
+    balanceStatus: 'paid',
+    balanceAmount: 0,
+  });
 }
