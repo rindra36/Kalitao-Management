@@ -47,7 +47,7 @@ export async function addExpense(expenseData: Omit<Expense, "id" | "createdAt" |
     const expensesCollection = await getExpensesCollection();
     
     const now = new Date();
-    const documentToInsert: Omit<Expense, 'id'> = {
+    const documentToInsert = {
       ...expenseData,
       date: new Date(expenseData.date),
       remark: expenseData.remark || '',
@@ -63,10 +63,21 @@ export async function addExpense(expenseData: Omit<Expense, "id" | "createdAt" |
         throw new Error("Failed to insert expense.");
     }
     
-    return {
+    // Reconstruct the object to ensure it is a plain object for serialization
+    const newExpense: Expense = {
       id: result.insertedId.toString(),
-      ...documentToInsert,
+      amount: documentToInsert.amount,
+      label: documentToInsert.label,
+      date: documentToInsert.date,
+      currency: documentToInsert.currency,
+      remark: documentToInsert.remark,
+      createdAt: documentToInsert.createdAt,
+      updatedAt: documentToInsert.updatedAt,
+      balanceStatus: documentToInsert.balanceStatus,
+      balanceAmount: documentToInsert.balanceAmount,
     };
+
+    return newExpense;
   } catch (error) {
     console.error("Error adding expense:", error);
     throw new Error("Could not add expense.");
