@@ -1,4 +1,5 @@
 
+
 "use server"
 
 import clientPromise from "@/lib/mongodb";
@@ -99,11 +100,16 @@ export async function updateExpense(id: string, updates: Partial<Omit<Expense, "
     const { _id, ...updatedDoc } = result as any;
 
     return { 
-        ...updatedDoc, 
         id: _id.toString(), 
+        amount: updatedDoc.amount,
+        label: updatedDoc.label,
         date: new Date(updatedDoc.date),
+        currency: updatedDoc.currency,
+        remark: updatedDoc.remark,
         createdAt: new Date(updatedDoc.createdAt),
         updatedAt: new Date(updatedDoc.updatedAt),
+        balanceStatus: updatedDoc.balanceStatus,
+        balanceAmount: updatedDoc.balanceAmount,
     } as Expense;
   } catch (error) {
     console.error("Error updating expense:", error);
