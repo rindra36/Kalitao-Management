@@ -1,3 +1,4 @@
+
 "use server"
 
 import clientPromise from "@/lib/mongodb";
@@ -7,7 +8,7 @@ import { ObjectId } from "mongodb";
 async function getExpensesCollection() {
   const client = await clientPromise;
   const db = client.db(process.env.MONGODB_DB); 
-  return db.collection<Omit<Expense, 'id'>>("expenses");
+  return db.collection("expenses");
 }
 
 export async function getExpenses(): Promise<Expense[]> {
@@ -18,16 +19,22 @@ export async function getExpenses(): Promise<Expense[]> {
       .sort({ date: -1 })
       .toArray();
 
-    return expensesFromDb.map((expense) => {
-      const { _id, ...rest } = expense as any;
-      return {
-        ...rest,
-        id: _id.toString(),
-        date: new Date(expense.date),
-        createdAt: new Date(expense.createdAt),
-        updatedAt: new Date(expense.updatedAt),
-      } as Expense;
+    // Manually convert each document to a plain object to avoid serialization issues.
+    return expensesFromDb.map((doc: any) => {
+        return {
+            id: doc._id.toString(),
+            amount: doc.amount,
+            label: doc.label,
+            date: new Date(doc.date),
+            currency: doc.currency,
+            remark: doc.remark,
+            createdAt: new Date(doc.createdAt),
+            updatedAt: new Date(doc.updatedAt),
+            balanceStatus: doc.balanceStatus,
+            balanceAmount: doc.balanceAmount,
+        }
     });
+
   } catch (error) {
     console.error("Error fetching expenses:", error);
     return [];
@@ -49,7 +56,7 @@ export async function addExpense(expenseData: Omit<Expense, "id" | "createdAt" |
       updatedAt: now,
     };
 
-    const result = await expensesCollection.insertOne(documentToInsert);
+    const result = await expensesCollection.insertOne(documentToInsert as any);
 
     if (!result.insertedId) {
         throw new Error("Failed to insert expense.");
