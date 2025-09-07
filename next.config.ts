@@ -18,11 +18,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // experimental: {
-  //   allowedDevOrigins: [
-  //       "https://*.cloudworkstations.dev",
-  //   ]
-  // },
+  experimental: {
+    instrumentationHook: true,
+  },
 };
 
 export default nextConfig;
